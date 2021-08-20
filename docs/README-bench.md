@@ -1,7 +1,6 @@
 # Readme for Running Benchmarks in LineFS Paper  <!-- omit in toc -->
 
 - [1. Microbenchmarks (throughput and latency)](#1-microbenchmarks-throughput-and-latency)
-	- [1.1. Read (TODO:)](#11-read-todo)
 - [2. LevelDB](#2-leveldb)
 	- [2.1. Required package](#21-required-package)
 	- [2.2. Build LevelDB](#22-build-leveldb)
@@ -12,7 +11,8 @@
 	- [3.3. Disable ASLR](#33-disable-aslr)
 	- [3.4. Run filebench](#34-run-filebench)
 	- [3.5. Known issues](#35-known-issues)
-- [4. Tencent Sort (TODO:Add documentation of this benchmark.)](#4-tencent-sort-todoadd-documentation-of-this-benchmark)
+
+All the benchmarks run on Primary host machine unless otherwise specified.
 
 ## 1. Microbenchmarks (throughput and latency)
 
@@ -25,11 +25,8 @@ cd bench/micro
 
 You can select which benchmark to run in the `run_all_linefs.sh` script.
 
-To change benchmark options, change constants in `bench/micro/scripts/run_iobench_lat.sh` for the latency benchmark and `bench/micro/scripts/run_iobench.sh` for the throughput benchmark.
+To change benchmark options like I/O size and the file size, modify `bench/micro/scripts/run_iobench_lat.sh` for the latency benchmark and `bench/micro/scripts/run_iobench.sh` for the throughput benchmark.
 
-TODO: add detailed explanation.
-
-### 1.1. Read (TODO:)
 
 ## 2. LevelDB
 
@@ -145,5 +142,3 @@ cd bench/filebench
     ```
 
   - Workaround: Exit the program (`sudo pkill -9 filebench`). It doesn't affect the experiment results.
-
-## 4. Tencent Sort (TODO:Add documentation of this benchmark.)

@@ -12,20 +12,20 @@
   - [3.1. RoCE configuration](#31-roce-configuration)
   - [3.2. SmartNIC setup](#32-smartnic-setup)
   - [3.3. Persistent memory configuration](#33-persistent-memory-configuration)
-- [4. Configuring LineFS](#4-configuring-linefs)
-  - [4.1. Compile-time configurations](#41-compile-time-configurations)
-  - [4.2. Run-time configurations](#42-run-time-configurations)
-- [5. Compiling LineFS](#5-compiling-linefs)
-  - [5.1. Build on the host machine](#51-build-on-the-host-machine)
-  - [5.2. Build on SmartNIC](#52-build-on-smartnic)
-- [6. Formatting devices](#6-formatting-devices)
-- [7. Deploying LineFS](#7-deploying-linefs)
-  - [7.1. Deployment scenario](#71-deployment-scenario)
-  - [7.2. Run kernel workers on host machines](#72-run-kernel-workers-on-host-machines)
-  - [7.3. Run NICFS on SmartNIC](#73-run-nicfs-on-smartnic)
-  - [7.4. Run applications](#74-run-applications)
-- [8. Run Assise](#8-run-assise)
-- [9. TODO](#9-todo)
+- [4. Download source code](#4-download-source-code)
+- [5. Configuring LineFS](#5-configuring-linefs)
+  - [5.1. Compile-time configurations](#51-compile-time-configurations)
+  - [5.2. Run-time configurations](#52-run-time-configurations)
+- [6. Compiling LineFS](#6-compiling-linefs)
+  - [6.1. Build on the host machine](#61-build-on-the-host-machine)
+  - [6.2. Build on SmartNIC](#62-build-on-smartnic)
+- [7. Formatting devices](#7-formatting-devices)
+- [8. Deploying LineFS](#8-deploying-linefs)
+  - [8.1. Deployment scenario](#81-deployment-scenario)
+  - [8.2. Run kernel workers on host machines](#82-run-kernel-workers-on-host-machines)
+  - [8.3. Run NICFS on SmartNIC](#83-run-nicfs-on-smartnic)
+  - [8.4. Run applications](#84-run-applications)
+- [9. Run Assise](#9-run-assise)
 
 If you are using our testbed for SOSP 2021 Artifact Evaluation, please read [README-AE.md](README-AE.md) first. After reading `README-AE.md`, you can directly go on to [Configuring LineFS](#configuring-linefs).
 
@@ -82,7 +82,7 @@ To set up SmartNIC, refer to [BlueField DPU Software documentation](https://docs
 
 > If your system does not have persistent memory, you need to emulate it using DRAM. Refer to [How to Emulate Persistent Memory Using Dynamic Random-access Memory (DRAM)](https://software.intel.com/content/www/us/en/develop/articles/how-to-emulate-persistent-memory-on-an-intel-architecture-server.html) for persistent memory emulation.
 
-LineFS uses persistent memory as storage and it needs to be configured as Device-DAX mode. Make sure that the created namespace has enough size. It must be larger than the size reserved by LineFS (TODO: Add link). A command for creating a new namespace is as below.
+LineFS uses persistent memory as storage and it needs to be configured as Device-DAX mode. Make sure that the created namespace has enough size. It must be larger than the size reserved by LineFS (`dev_size` in `libfs/src/storage/storage.h`). A command for creating a new namespace is as below.
 
 ```shell
 sudo ndctl create-namespace -m dax --region=region0 --size=132G
@@ -95,10 +95,17 @@ $ ls /dev/dax*
 /dev/dax0.0  /dev/dax0.1
 ```
 
+## 4. Download source code
 
-## 4. Configuring LineFS
+```shell
+git clone git@github.com:casys-kaist/LineFS.git
+cd LineFS
+git submodule update --init --recursive
+```
 
-### 4.1. Compile-time configurations
+## 5. Configuring LineFS
+
+### 5.1. Compile-time configurations
 
 `kernfs/Makefile` and `libfs/Makefile` includes compile-time configurations. You need to re-compile LineFS by running as below.
 
@@ -118,13 +125,13 @@ IP addresses of machines and SmartNICs and the order of replication chain are de
 
 A device size to be used by LineFS is defined as variable `dev_size` in `libfs/src/storage/storage.h`.
 
-### 4.2. Run-time configurations
+### 5.2. Run-time configurations
 
 `mlfs_config.sh` includes run-time configurations. To apply a change in configurations you need to restart LineFS.
 
-## 5. Compiling LineFS
+## 6. Compiling LineFS
 
-### 5.1. Build on the host machine
+### 6.1. Build on the host machine
 
 The following command will do all the compilations required on the host machine. It includes downloading and compiling libraries, compiling *LibFS*, *kernel worker*, an RDMA module and benchmarks, setting SPDK up, and formatting file system.
 
@@ -141,7 +148,7 @@ make kernfs     # Build kernel worker. TODO: change to another name.
 make libfs      # Build LibFS.
 ```
 
-### 5.2. Build on SmartNIC
+### 6.2. Build on SmartNIC
 
 The following command will do all the compilations required on SmartNIC. It includes downloading and compiling libraries and compiling an RDMA module and `NICFS`.
 
@@ -157,7 +164,7 @@ make rdma       # Build rdma module.
 make kernfs     # Build `NICFS` TODO: change to another name.
 ```
 
-## 6. Formatting devices
+## 7. Formatting devices
 
 Run the following command at the project root directory.
 
@@ -165,9 +172,9 @@ Run the following command at the project root directory.
 make mkfs
 ```
 
-## 7. Deploying LineFS
+## 8. Deploying LineFS
 
-### 7.1. Deployment scenario
+### 8.1. Deployment scenario
 
 Let's think of the following deployment scenario.
 There are three host machines and each host machine is equipped with a SmartNIC.
@@ -185,7 +192,7 @@ We want to make LineFS have a replication chain as below.
 
 - *Host machine 1* --> *Host machine 2* --> *Host machine 3*
 
-### 7.2. Run kernel workers on host machines
+### 8.2. Run kernel workers on host machines
 
 The following script runs *kernel worker*.
 
@@ -195,9 +202,7 @@ scripts/run_kernfs.sh
 
 We need to execute this script on all three host machines. After running the script, *kernel workers* wait for SmartNICs to connect.
 
-TODO: Add screenshot. "Waiting for client accesses."
-
-### 7.3. Run NICFS on SmartNIC
+### 8.3. Run NICFS on SmartNIC
 
 We need to execute this script on all three SmartNICs. Run them in the reverse order in which they are defined as `hot_replicas` at `libfs/src/distributed/rpc_interface.h`. For example, if they are defined as below,
 ```c
@@ -212,9 +217,8 @@ static struct peer_id hot_replicas[g_n_hot_rep] = {
 ```
 then run `mkfs_run_kernfs.sh` in `host03-nic` --> `host02-nic` --> `host01-nic` order. You have to wait that the previous SmartNIC finishes establishing its connections.
 
-TODO: Add screenshot. "Ready for receiving LibFS accesses."
 
-### 7.4. Run applications
+### 8.4. Run applications
 
 We are going to run a simple test application, `iotest`.
 ```
@@ -222,10 +226,28 @@ cd libfs/tests
 sudo ./run.sh iotest sw 1G 4K 1   # sequential write, 1GB file, 4KB i/o size, 1 thread
 ```
 
-## 8. Run Assise
+## 9. Run Assise
+To run Assise (run without NIC-offloading) rather than LineFS, change the flags in `libfs/Makefile` and `kernfs/Makefile`.
 
-## 9. TODO
+Change lines of `libfs/Makefile` as below.
 
-- Compare with Assise
-- Compare with Hyperloop
-- Add what's missing in this artifact compared with paper.
+```Makefile
+...
+MLFS_FLAGS = $(COMMON_FLAGS)  # Disable NIC-offloading (hostonly)
+# MLFS_FLAGS = $(WITH_SNIC_FLAGS) # Enable NIC-offloading
+...
+```
+
+Change lines of `kernfs/Makefile` as below.
+
+```Makefile
+...
+MLFS_FLAGS = $(COMMON_FLAGS) $(HOST_FLAGS)  # Disable NIC-offloading (hostonly)
+# MLFS_FLAGS = $(WITH_SNIC_HOST_FLAGS) 	# Enable NIC-offloading
+...
+```
+
+Rebuild the source code with the commands `make kernfs` and `make libfs` at the project root directory.
+
+You can use the same script, `scripts/run_kernfs.sh`, however, a SharedFS (KernFS) needs to wait for the next SharedFS in the replication chain to be ready.
+For example, run Replica 2's SharedFS -> wait for a while -> run Replica 1's SharedFS -> wait for a while --> run Primary's SharedFS.
