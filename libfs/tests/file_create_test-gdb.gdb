@@ -1,0 +1,24 @@
+# from ../../mlfs_conf.sh
+set environment NET_INTERFACE_NAME=enp59s0f0
+set environment PERSIST_NVM=1
+set environment PERSIST_NVM_WITH_CLFLUSH=0
+set environment PERSIST_NVM_WITH_RDMA_READ=1
+set environment LOG_COALESCE=0	# Not supported in NIC-offloading setup.
+set environment DIGEST_OPT_FCONCURRENT=0
+set environment IOAT_MEMCPY_OFFLOAD=1
+set environment ASYNC_REPLICATION=0
+set environment NIC_OFFLOAD=1
+set environment DIGEST_OPT_HOST_MEMCPY=1
+set environment DIGEST_OPT_PARALLEL_RDMA_MEMCPY=0
+set environment BREAKDOWN=0
+set environment REPLICATION_BREAKDOWN=0
+set environment DIGEST_BREAKDOWN=0
+set environment BREAKDOWN_MP=1
+set environment THREAD_NUM_DIGEST=8
+set environment THREAD_NUM_DIGEST_FCONCURRENT=8
+set environment THREAD_NUM_REP=1
+set environment THREAD_NUM_DIGEST_RDMA_MEMCPY=1
+set environment THREAD_NUM_DIGEST_HOST_MEMCPY=1
+set environment THREAD_NUM_DIGEST_SEND_LOGHDR=4
+set environment DIGEST_NOOP=0
+set environment HYPERLOOP_OPS_FILE_PATH="/tmp/hyp_ops.sw.1g.4k"

@@ -1,0 +1,168 @@
+#! /usr/bin/sudo /bin/bash 
+# vim: ft=sh
+
+. $(dirname $0)/environment
+# . $(dirname $0)/net_util
+
+## Base Definitions
+snapshotyes="--snapshot"
+snapshotno=""
+snapshotwarn="WARNING: Not snapshotting..."
+serialyes="-serial tcp::4444,server,nowait"
+#serialno="-serial stdio"
+serialno=""
+graphicsyes="-display sdl"
+#graphicsno="-display vnc=:0"
+graphicsno="--nographic"
+#graphicsno=""
+cacheyes=",cache=writeback"
+cacheno=",cache=none"
+soundyes="-soundhw hda"
+soundno=""
+tapyes="-net tap,script=${UTILS_DIR}/qemu-ifup.sh,downscript=${UTILS_DIR}/qemu-ifdown.sh,vlan=0"
+# NET_CARD="-net nic,model=virtio,vlan=0"
+tapyes="${tapyes} -net nic,model=virtio,vlan=0,macaddr=18:03:00:00:01:01"
+tapno="-netdev user,id=en0,net=10.0.0.0/8,dhcpstart=10.0.0.1"
+# NET_CARD="-device virtio-net,netdev=en0"
+tapno="${tapno} -device virtio-net,netdev=en0"
+#debugyes="-gdb tcp::6666"
+debugyes="-s"
+debugcmd="sed 's/path:to:vmlinux/${KERNEL_DIR//\//\\/}\/vmlinux/'
+< ${UTILS_DIR}/gdbinit.tmpl > ${CUR_DIR}/.gdbinit"
+debugno=""
+#monitoryes="-monitor tcp::5555,server,nowait"
+monitoryes="-monitor unix:/tmp/qmp_${0#\./},server,nowait"
+monitorno=""
+cdromno=""
+cdromyes="-cdrom /home/yjkwon/ubuntu-14.04.3-server-amd64.iso -boot d"
+virtioyes=",if=virtio"
+virtiono=""
+autoballoonyes="-device virtio-balloon,automatic=true"
+autoballoonno=""
+qmpyes="-qmp unix:/tmp/qmp_${0#\./},server,nowait"
+qmpno=""
+#virtfsyes="-fsdev local,id=fs1,path=/lib/modules,security_model=mapped,readonly \
+#virtfsyes="-fsdev local,id=fs1,path=/lib/modules,security_model=passthrough \
+#			-device virtio-9p-pci,fsdev=fs1,mount_tag=modules"
+virtfsyes="-fsdev local,id=fs2,path=/home/yjkwon/project/mlfs/,security_model=passthrough,readonly \
+	-device virtio-9p-pci,fsdev=fs2,mount_tag=repository"
+virtfsno=""
+nvdimmyes="-machine pc,nvdimm"
+nvdimmno=""
+
+## Default options
+graphics="no"
+snapshot="no"
+sound="no"
+serial="no"
+cache="no"
+tap="yes"
+debug="no"
+cdrom="no"
+virtio="yes"
+autoballoon="no"
+qmp="no"
+monitor="no"
+virtfs="yes"
+nvdimm="yes"
+
+# timer="no"
+# track="no"
+
+for arg in $@; do
+    if [ "${arg#*.img}" != "${arg}" ]; then
+	NAME=${arg}
+    elif [ "${arg#--}" != "${arg}" ]; then
+	case "${arg%-*}" in
+	    --no)
+		eval ${arg#--no-}=no
+		warn=${arg#--no-}warn
+		if [ -n "${!warn}" ]; then
+		    echo ${!warn}
+		fi
+		;;
+	    -)
+		eval ${arg#--}="yes"
+		cmd=${arg#--}cmd
+		if [ -n "${!cmd}" ]; then
+		    eval ${!cmd}
+		fi
+		;;
+	    *)
+		echo "Bad Argument"
+		;;
+	esac
+    fi
+done
+
+#if [ "x${vnc}" = "xyes" ]; then
+#    graphicsyes="-vnc :0"
+#fi
+
+GRAPHICS=graphics${graphics}
+SNAP=snapshot${snapshot}
+SOUND=sound${sound}
+SERIAL=serial${serial}
+CACHE=cache${cache}
+TAP=tap${tap}
+DEBUG=debug${debug}
+MONITOR=monitor${monitor}
+CDROM=cdrom${cdrom}
+VIRTIO=virtio${virtio}
+AUTOBALLOON=autoballoon${autoballoon}
+QMP=qmp${qmp}
+VIRTFS=virtfs${virtfs}
+NVDIMM=nvdimm${virtfs}
+
+# TRACK=${track}
+# TIME=${timer}
+
+QEMU=${QEMU_DIR}/x86_64-softmmu/qemu-system-x86_64
+#MEMSIZE=${MEMSIZE:-8192}
+MEMSIZE=${MEMSIZE:-16384}
+MEM="-m ${MEMSIZE}"
+SMP="-smp 8"
+
+NET_IF=${!TAP}
+#NET_DHCP="-net user,net=10.0.0.0/8,dhcpstart=10.0.0.1"
+
+# For tap, configure net via our hypercall mechanism
+if [ "${tap}" = "no" ]; then
+# NET_NUM="-priv-net-num 0"
+# else
+    #NET_HTTP="-redir tcp:8080:10.0.0.1:80"
+    NET_HTTP=""
+    NET_SSH="-redir tcp:2200:10.0.0.1:22 -redir tcp:2222:10.0.0.1:2222"
+    NET_MEMCACHED="-redir tcp:11211:10.0.0.1:11211 -redir udp:11211:10.0.0.1:11211"
+fi
+NET="${NET_CARD} ${NET_IF} ${NET_HTTP} ${NET_SSH} ${NET_MEMCACHED} ${NET_NUM}"
+
+MAIN_IMG=/data/vm_images/vm_pmem.img
+SEC_IMG=/data/vm_images/extra_disk.img
+
+# We don't want to use IMAGE_NAME here because this uses NAME as it
+# was previously evaluated.  We want to use the new value of NAME.
+# However, we want to leave the environment file the way it is for use
+# by other utilities.
+
+# export LD_LIBRARY_PATH=/usr/local/libgcrypt/
+IMAGE_FILE="-drive file=${MAIN_IMG}${!VIRTIO}${!CACHE} \
+	-drive file=${SEC_IMG}${!VIRTIO}${!CACHE} \
+"
+
+MOUNT=$(mount | grep '/dev/nbd0p1' || echo 0)
+if [ "${MOUNT}" != "0" ]; then
+    echo -n "It looks like the disk image is still mounted, disconnected? [Y/n] "
+    read resp
+    if [ "${resp:0:1}" == "n" -o "${resp:0:1}" == "N" ]; then
+	echo "Ok..."
+    else
+	${UTILS_DIR}/disconnect_hd
+    fi
+fi
+
+KERNEL_IMG=${BASE_DIR}/kernel/kbuild/arch/x86_64/boot/bzImage
+KERNEL_APPEND="root=/dev/vda1 console=tty0 console=ttyS0 page_owner=on memmap=4G!10G"
+
+set -x
+${QEMU} -s ${!NVDIMM} ${!GRAPHICS} ${MEM} ${!AUTOBALLOON} ${NET} ${!VIRTFS} ${SMP} ${!CDROM} ${!SNAP} ${!SOUND} ${!SERIAL} ${IMAGE_FILE} ${PRIV_INPUT} ${!QMP} ${!MONITOR} ${!DEBUG} -kernel ${KERNEL_IMG} -append "${KERNEL_APPEND}" --enable-kvm -cpu host

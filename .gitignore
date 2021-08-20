@@ -1,0 +1,40 @@
+# Ignore these
+*.img
+*.[oa]
+*.lo
+*.la
+.*.swp
+*.trace
+cscope.*
+GTAG*
+tags
+*.tar.gz
+*.tar.bz2
+#.gdbinit
+
+#module debris
+*.o.cmd
+*.ko.cmd
+*.mod.c
+
+#vim python mode debris
+.ropeproject
+
+#cmake tmp files
+CMakeFiles
+cmake_install.cmake
+CMakeCache.txt
+
+#libfs 
+libfs/build/*
+libfs/bin/*
+libfs/lib/dpdk-16.07/*
+libfs/lib/nvml/*
+#libfs/lib/spdk/*
+
+#vim configurations
+.clangd
+compile_commands.*
+
+# temp files.
+commit_msg

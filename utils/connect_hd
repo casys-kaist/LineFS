@@ -1,0 +1,46 @@
+#!/bin/bash -e
+# NAME=${1:-inktag.img}
+
+for arg in $@; do
+    if [ "${arg#*.img}" != "${arg}" ]; then
+	NAME=${arg}
+    elif [ "${arg#--}" != "${arg}" ]; then
+	case "${arg%-*}" in
+	    --no)
+		eval ${arg#--no-}=no
+		warn=${arg#--no-}warn
+		if [ -n "${!warn}" ]; then
+		    echo ${!warn}
+		fi
+		;;
+	    -)
+		eval ${arg#--}="yes"
+		cmd=${arg#--}cmd
+		if [ -n "${!cmd}" ]; then
+		    eval ${!cmd}
+		fi
+		;;
+	    *)
+		echo "Bad Argument"
+		;;
+	esac
+    fi
+done
+
+. `dirname $0`/environment
+
+if [ -f ${IMAGE} ]; then
+
+echo Connecting ${IMAGE}
+sudo modprobe nbd max_part=16
+sudo mkdir -p ${VM_DISK}
+sudo ${QEMU_NBD} -f raw -c ${NBD_DEVICE} ${IMAGE}
+# Without this sleep, this doesn't work!
+flag=$(ls ${NBD_DEVICE}p1 > /dev/null 2> /dev/null; echo $?)
+while [ $flag != 0 ]; do
+    sleep 1
+    flag=$(ls ${NBD_DEVICE}p1 > /dev/null 2> /dev/null; echo $?)
+done
+sudo mount ${NBD_DEVICE}p1 ${VM_DISK}
+
+fi

@@ -1,0 +1,13 @@
+*.log
+iobench
+iobench.normal
+iobench.infinite
+iobench_lat
+iobench_lat.normal
+iobench_monitor
+iobench_monitor.normal
+iobench.ntimes
+membench
+outputs
+results
+out_all

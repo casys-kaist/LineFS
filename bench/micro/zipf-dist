@@ -1,0 +1,50 @@
+#!/usr/bin/perl
+
+use Math::Random::Zipf;
+
+if (@ARGV < 3) {
+   print "USAGE: zipf-dist <s> <file_size> <write_size>\n";
+   die;
+}
+
+my $s = $ARGV[0];
+my $filesize = $ARGV[1];
+my $writesize = $ARGV[2];
+
+if ($filesize =~ /(\d+)M.*/a) {
+   $filesize = $1 * 1024 * 1024;
+}
+if ($filesize =~ /(\d+)K.*/a) {
+   $filesize = $1 * 1024;
+}
+if ($filesize =~ /(\d+)G.*/a) {
+   $filesize = $1 * 1024 * 1024 *1024;
+}
+if ($filesize =~ /(\d+)B.*/a) {
+   $filesize = $1;
+}
+
+if ($writesize =~ /(\d+)M.*/a) {
+   $writesize = $1 * 1024 * 1024;
+}
+if ($writesize =~ /(\d+)K.*/a) {
+   $writesize = $1 * 1024;
+}
+if ($writesize =~ /(\d+)G.*/a) {
+   $writesize = $1 * 1024 * 1024 *1024;
+}
+if ($writesize =~ /(\d+)B.*/a) {
+   $writesize = $1;
+}
+
+$n = $filesize / $writesize;
+$filesize = $filesize - 1;
+
+my $zipf = Math::Random::Zipf->new($filesize, $s);
+# get X given probability
+for( $a = 0; $a < $n; $a = $a + 1 ){
+   use integer;
+   $val = ($zipf->rand() / $writesize) * $writesize;
+   print $val;
+   print "\n";
+}

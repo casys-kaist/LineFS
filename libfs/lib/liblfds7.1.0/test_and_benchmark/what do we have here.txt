@@ -1,0 +1,16 @@
+benchmark    : command line veneer calling the libbenchmark API
+libbenchmark : the benchmarkng code
+libshared    : various shared APIs'n'stuff, everyone else depends on this
+libtest      : the testing code
+test         : command line veneer calling the libtest API
+
+TO TEST : compile libshared, libtest and test.
+
+TO BENCHMARK : compile libshared, libbenchmark and benchmark.
+
+test and benchmark are veneers only - they give a nice command line wrapper
+around libtest and libbenchmark; they have no actual real code in.  If you
+want to run test or benchmark on platforms without a command line, just
+compile libshared and libtest or libbenchmark, and call the test or the
+benchmark API directly - they're designed to be zero work for the caller.
+

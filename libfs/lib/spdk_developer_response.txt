@@ -1,0 +1,11 @@
+Focusing on just the problem where the device is returning all 0xFs for the register reads for a moment, I traced that back to its likely source. You, as the user, called spdk_nvme_probe(), which scanned the PCI bus and found the set of devices to attach to. Once the list is built, nvme_init_controllers() begins walking through a state machine on each device to bring it online (we do parallel bring up on the whole list). For each device, the state machine advances by calling nvme_ctrlr_process_init() on each controller to check if it can enter the next state. The state machine is defined by the NVMe specification.
+
+It appears that your Toshiba RD-400 is exhibiting a behavior we haven't encountered before during this initialization. If a device is already in the enabled state (CC.EN == 1) when we start our state machine, we disable it (write CC.EN = 0). Disabling a controller triggers a device reset. My best guess is that there is a brief period during that reset process where the Toshiba RD-400 stops responding to MMIO reads, which results in the all 0xFs values you are seeing. Returning all 0xFs is not valid for those registers and we use that as an indication that the device was hot removed (which is new in SPDK 16.12).
+
+I also think I can explain why this worked on an earlier version of SPDK. Prior to our hotplug code, we didn't check the register reads for the all 0xF signal value. Instead, we just blindly moved ahead, assuming all 0xFs was a valid value for that register. The next step in the state machine is to wait until CSTS.RDY becomes 0 (meaning the device is now disabled). A few erroneous all 0xF reads during that waiting period doesn't hurt anything. Clearly, this was working by accident.
+
+I also walked through the Linux kernel NVMe driver and it works for exactly the same reason - they blindly interpret the CSTS read as valid while waiting for CSTS.RDY to become 0 and don't notice a brief period of all 0xF reads. The kernel checks in other locations for all 0xF reads as an indication of device removal, but not in this particular spot.
+
+Attached is a patch that attempts to work around the issue. Can you give that a try and let me know how it goes? Remove any other modifications you made locally before attempting.
+
+0001-nvme-Handle-failing-MMIO-reads-while-resetting.txt

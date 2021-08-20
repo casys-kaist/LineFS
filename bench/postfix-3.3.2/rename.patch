@@ -1,0 +1,44 @@
+diff --git a/src/local/maildir.c b/src/local/maildir.c
+index d9d7f8e..090db94 100644
+--- a/src/local/maildir.c
++++ b/src/local/maildir.c
+@@ -223,17 +223,29 @@ int     deliver_maildir(LOCAL_STATE state, USER_ATTR usr_attr, char *path)
+ 	if ((mail_copy_status = mail_copy(COPY_ATTR(state.msg_attr),
+ 					  dst, copy_flags, "\n",
+ 					  why)) == 0) {
+-	    if (sane_link(tmpfile, newfile) < 0
+-		&& (errno != ENOENT
+-		    || (make_dirs(curdir, 0700), make_dirs(newdir, 0700)) < 0
+-		    || sane_link(tmpfile, newfile) < 0)) {
+-		dsb_simple(why, mbox_dsn(errno, "5.2.0"),
+-			   "create maildir file %s: %m", newfile);
+-		mail_copy_status = MAIL_COPY_STAT_WRITE;
+-	    }
++            //if (sane_link(tmpfile, newfile) < 0
++            //   && (errno != ENOENT
++            //       || (make_dirs(curdir, 0700), make_dirs(newdir, 0700)) < 0
++            //       || sane_link(tmpfile, newfile) < 0)) {
++            //   dsb_simple(why, mbox_dsn(errno, "5.2.0"),
++            //              "create maildir file %s: %m", newfile);
++            //   mail_copy_status = MAIL_COPY_STAT_WRITE;
++            //}
++            if (sane_rename(tmpfile, newfile) < 0
++                && (errno != ENOENT
++                    || (make_dirs(curdir, 0700), make_dirs(newdir, 0700)) < 0
++                    || sane_rename(tmpfile, newfile) < 0)) {
++                dsb_simple(why, mbox_dsn(errno, "5.2.0"),
++                           "create maildir file %s: %m", newfile);
++                mail_copy_status = MAIL_COPY_STAT_WRITE;
++            } else {
++                if (msg_verbose)
++                    msg_info("renamed file %s as %s", tmpfile, newfile);
++            }
++
+ 	}
+-	if (unlink(tmpfile) < 0)
+-	    msg_warn("remove %s: %m", tmpfile);
++        //if (unlink(tmpfile) < 0)
++        //    msg_warn("remove %s: %m", tmpfile);
+ #ifdef ASSISE_LOG
+ 	// JYKIM file create done. flag off.
+ 	GETTIMEOFDAY(&cont_time);

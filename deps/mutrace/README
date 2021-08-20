@@ -1,0 +1,54 @@
+MUTRACE Mutex Tracer
+
+GIT:
+        git://git.0pointer.de/mutrace.git
+
+GITWEB:
+        http://git.0pointer.de/?p=mutrace.git
+
+NOTES:
+        For a terse overview what mutrace can do for you, please read
+        the announcement blog story:
+
+        http://0pointer.de/blog/projects/mutrace.html
+
+        The tarball includes two profilers:
+
+        mutrace profiles lock contention for you. Just use it as
+        prefix for your usual command line and it will profile
+        mutexes used in all child processes. Example:
+
+                mutrace gedit
+
+        matrace traces memory allocation operations in realtime
+        threads for you. It is of no use in applications that do not
+        make use of realtime scheduling. Example:
+
+                matrace myrealtimetool
+
+       Both tools understand a --debug-info switch in which case the
+       backtraces generated will include debugging information such as
+       line numbers and source file names. This is not enabled by
+       default since generating those traces is not always safe in
+       situations where locks are taken or memory allocated as we do
+       it here. YMMV.
+
+       mutrace cannot be used to profile glibc-internal mutexes.
+
+LICENSE:
+        LGPLv3+
+
+        Exception:
+
+        backtrace-symbols.c is GPLv2+. Which probably means that using
+        the --debug-info switch for mutrace and matrace might not be
+        legally safe for non-GPL-compatible applications. However,
+        since that module is independantly built into a seperate .so
+        it should still be safe using the profilers without this
+        switch on such software.
+
+AUTHORS:
+        Lennart Poettering
+
+REQUIREMENTS:
+        Recent gcc, glibc, Linux

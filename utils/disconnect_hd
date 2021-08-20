@@ -1,0 +1,7 @@
+#!/usr/bin/sudo /bin/bash
+
+. `dirname $0`/environment
+
+umount ${VM_DISK}
+fsck ${NBD_DEVICE}p1
+${QEMU_NBD} -d ${NBD_DEVICE}

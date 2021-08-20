@@ -1,0 +1,27 @@
+[submodule "submodules/ndctl"]
+	path = submodules/ndctl
+	url = https://github.com/pmem/ndctl
+[submodule "submodules/nvml"]
+	path = submodules/nvml
+	url = https://github.com/pmem/nvml
+[submodule "libfs/lib/hyperloop"]
+	path = libfs/lib/hyperloop
+	url = git@github.com:casys-kaist-internal/hyperloop.code.git
+[submodule "libfs/lib/ioat-dma-kernel-module"]
+	path = libfs/lib/ioat-dma-kernel-module
+	url = git@github.com:casys-kaist-internal/Pipeline-ioat-dma-kernel-module.git
+[submodule "kernfs/lib/simple-lz4"]
+	path = kernfs/lib/simple-lz4
+	url = git@github.com:casys-kaist-internal/simple-lz4.git
+[submodule "kernfs/lib/ioat-dma-kernel-module"]
+	path = kernfs/lib/ioat-dma-kernel-module
+	url = git@github.com:casys-kaist-internal/Pipeline-ioat-dma-kernel-module.git
+[submodule "bench/minutesort"]
+	path = bench/minutesort
+	url = git@github.com:casys-kaist-internal/minutesort-at-assise-artifact.git
+[submodule "libfs/lib/rdma-core"]
+	path = libfs/lib/rdma-core
+	url = https://github.com/linux-rdma/rdma-core.git
+[submodule "utils/stop-machine"]
+	path = utils/stop-machine
+	url = https://github.com/satoru-takeuchi/stop-machine.git

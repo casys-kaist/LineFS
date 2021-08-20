@@ -1,0 +1,84 @@
+#!/bin/bash
+
+# This file is part of mutrace.
+#
+# Copyright 2009 Lennart Poettering
+#
+# mutrace is free software: you can redistribute it and/or modify it
+# under the terms of the GNU Lesser General Public License as
+# published by the Free Software Foundation, either version 3 of the
+# License, or (at your option) any later version.
+#
+# mutrace is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+# Lesser General Public License for more details.
+#
+# You should have received a copy of the GNU Lesser General Public
+# License along with mutrace. If not, see <http://www.gnu.org/licenses/>.
+
+if ! TEMP=`getopt -o +dh --long frames:,debug-info,help -n matrace -- "$@"` ; then
+    exit 1
+fi
+
+eval set -- "$TEMP"
+
+debug_info=0
+
+while : ; do
+        case $1 in
+                --frames)
+                        export MATRACE_FRAMES="$2"
+                        shift 2
+                        ;;
+
+                -d|--debug-info)
+                        debug_info=1
+                        shift 1
+                        ;;
+
+                -h|--help)
+                        cat <<EOF
+@PACKAGE_STRING@
+
+Usage: matrace [OPTIONS...] APPLICATION [ARGUMENTS...]
+
+COMMANDS:
+  -h, --help                      Show this help
+
+OPTIONS:
+      --frames=INTEGER            Set number of frames to show in stack traces
+  -d, --debug-info                Make use of debug information in stack traces
+EOF
+                        exit 0
+                        ;;
+                --)
+                        shift
+                        break
+                        ;;
+
+                *)
+                        echo "Parsing failed!" >&2
+                        exit 1
+                        ;;
+        esac
+done
+
+shift $(($OPTIND-1))
+
+if [ x"$1" = x ] ; then
+        echo "Please specify an application to profile!" >&2
+        exit 1
+fi
+
+if [ x"$LD_PRELOAD" = x ] ; then
+        export LD_PRELOAD="libmatrace.so"
+else
+        export LD_PRELOAD="$LD_PRELOAD:libmatrace.so"
+fi
+
+if [ x"$debug_info" = x1 ] ; then
+        export LD_PRELOAD="$LD_PRELOAD:libmutrace-backtrace-symbols.so"
+fi
+
+exec "$@"

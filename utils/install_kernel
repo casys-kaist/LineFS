@@ -1,0 +1,17 @@
+#!/bin/sh -e
+
+# Uncomment the option below to debug
+# set -x
+
+. `dirname $0`/environment
+
+CURDIR=`pwd`
+
+${UTILS_DIR}/connect_hd $@
+
+cd ${KERNEL_DIR}
+make INSTALL_PATH=${VM_DISK}/boot install
+make INSTALL_MOD_PATH=${VM_DISK} modules_install
+cd ${CURDIR}
+
+${UTILS_DIR}/disconnect_hd
