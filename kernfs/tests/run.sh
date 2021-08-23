@@ -21,7 +21,7 @@ PATH=$PATH:.
 source ../../mlfs_config.sh
 
 SYS=$(gcc -dumpmachine)
-if [ $SYS = "aarch64-linux-gnu" ]; then
+if [ "$SYS" = "aarch64-linux-gnu" ]; then
     BUILD_REL="buildarm"
 else
     BUILD_REL="build"
@@ -29,6 +29,6 @@ fi
 
 LD_LIBRARY_PATH=../${BUILD_REL}:../../libfs/lib/nvml/src/nondebug/ \
     LD_PRELOAD=../../libfs/lib/jemalloc-4.5.0/lib/libjemalloc.so.2 \
-    $PINNING $@
+    $PINNING "$@"
 
     # numactl -N0 -m0 mutrace $@

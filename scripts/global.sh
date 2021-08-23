@@ -1,6 +1,6 @@
 #!/bin/bash
-PROJ_DIR="/home/yulistic/assise-nic"     # Host's project root directory path.
-NIC_PROJ_DIR="/home/yulistic/assise-nic" # NIC's project root directory path.
+PROJ_DIR="/path/to/host/proj_root"     # Host's project root directory path.
+NIC_PROJ_DIR="/path/to/nic/proj_root" # NIC's project root directory path.
 
 SYS=$(gcc -dumpmachine)
 if [ $SYS = "aarch64-linux-gnu" ]; then

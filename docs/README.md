@@ -14,8 +14,9 @@
   - [3.3. Persistent memory configuration](#33-persistent-memory-configuration)
 - [4. Download source code](#4-download-source-code)
 - [5. Configuring LineFS](#5-configuring-linefs)
-  - [5.1. Compile-time configurations](#51-compile-time-configurations)
-  - [5.2. Run-time configurations](#52-run-time-configurations)
+  - [5.1. Set project root paths and hostnames](#51-set-project-root-paths-and-hostnames)
+  - [5.2. Compile-time configurations](#52-compile-time-configurations)
+  - [5.3. Run-time configurations](#53-run-time-configurations)
 - [6. Compiling LineFS](#6-compiling-linefs)
   - [6.1. Build on the host machine](#61-build-on-the-host-machine)
   - [6.2. Build on SmartNIC](#62-build-on-smartnic)
@@ -26,6 +27,7 @@
   - [8.3. Run NICFS on SmartNIC](#83-run-nicfs-on-smartnic)
   - [8.4. Run applications](#84-run-applications)
 - [9. Run Assise](#9-run-assise)
+- [10. Running benchmarks](#10-running-benchmarks)
 
 If you are using our testbed for SOSP 2021 Artifact Evaluation, please read [README-AE.md](README-AE.md) first. After reading `README-AE.md`, you can directly go on to [Configuring LineFS](#configuring-linefs).
 
@@ -105,7 +107,31 @@ git submodule update --init --recursive
 
 ## 5. Configuring LineFS
 
-### 5.1. Compile-time configurations
+### 5.1. Set project root paths and hostnames
+
+Set project root paths of the host machine and the SmartNIC. For example, if your source codes are located in `/home/guest/LineFS_x86` on host and `/home/geust/LineFS_ARM` on SmartNIC, set as below.
+
+```shell
+PROJ_DIR="/home/guest/LineFS_x86"
+NIC_PROJ_DIR="/home/guest/LineFS_ARM"
+```
+
+Set hostnames for three host machines and three SmartNICs. The name of SmartNICs should be the name of RDMA interfaces. For example, If you are using three host machines, `host01`, `host02`, and `host03`, and three SmartNICs, `host01-nic`, `host02-nic`, and `host03-nic`, change `scripts/global.sh` as below.
+
+```shell
+HOST_1="host01"
+HOST_2="host02"
+HOST_3="host03"
+
+NIC_1="host01-nic-rdma"
+NIC_2="host02-nic-rdma"
+NIC_3="host03-nic-rdma"
+```
+
+Or you can use IP addresses instead of hostnames.
+
+
+### 5.2. Compile-time configurations
 
 `kernfs/Makefile` and `libfs/Makefile` includes compile-time configurations. You need to re-compile LineFS by running as below.
 
@@ -125,7 +151,7 @@ IP addresses of machines and SmartNICs and the order of replication chain are de
 
 A device size to be used by LineFS is defined as variable `dev_size` in `libfs/src/storage/storage.h`.
 
-### 5.2. Run-time configurations
+### 5.3. Run-time configurations
 
 `mlfs_config.sh` includes run-time configurations. To apply a change in configurations you need to restart LineFS.
 
@@ -251,3 +277,7 @@ Rebuild the source code with the commands `make kernfs` and `make libfs` at the 
 
 You can use the same script, `scripts/run_kernfs.sh`, however, a SharedFS (KernFS) needs to wait for the next SharedFS in the replication chain to be ready.
 For example, run Replica 2's SharedFS -> wait for a while -> run Replica 1's SharedFS -> wait for a while --> run Primary's SharedFS.
+
+## 10. Running benchmarks
+
+Refer to [README-bench](README-bench.md).
