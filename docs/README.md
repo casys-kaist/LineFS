@@ -53,8 +53,8 @@ If you are using our testbed for SOSP 2021 Artifact Evaluation, please read [REA
 
 #### 1.2.1. Host machine
 
-- Ubuntu 20.04
-- Linux kernel version: 5.4.128
+- Ubuntu 18.04
+- Linux kernel version: 5.3.11
 - Mellanox OFED driver version: 4.7-3.2.9
 - Bluefield Software version: 2.5.1
 
