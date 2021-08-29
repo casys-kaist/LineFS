@@ -3,8 +3,8 @@ source ../../scripts/global.sh
 source scripts/consts.sh
 source scripts/utils.sh
 
-IS_LOCAL=true
-# IS_LOCAL=false
+# IS_LOCAL=true
+IS_LOCAL=false
 
 # ROUNDS=5
 # rm -f parsec_only.out
@@ -18,15 +18,15 @@ IS_LOCAL=true
 PARSEC_BENCH="streamcluster"
 
 runStressNg() {
-	stressng_cmd="${PARSEC_DIR}/scripts/run_stress_ng.sh &> /dev/null &"
+	stressng_cmd="${PROJ_DIR}/scripts/run_stress_ng.sh &> /dev/null &"
 	$SSH_HOST_2 $stressng_cmd
 	$SSH_HOST_3 $stressng_cmd
 
 	if [ $IS_LOCAL = true ]; then
-		${PARSEC_DIR}/scripts/run_stress_ng.sh &>/dev/null &
+		${PROJ_DIR}/scripts/run_stress_ng.sh &>/dev/null &
 	fi
 
-	sleep 3
+	sleep 5
 }
 
 killStressNg() {
@@ -45,12 +45,12 @@ runParsec() {
 
 	if [ $IS_LOCAL = true ]; then
 		(
-			cd ${PARSEC_DIR}
+			cd ${PARSEC_DIR} || exit
 			./scripts/run.sh -b $PARSEC_BENCH -m long
 		) &>/dev/null &
 	fi
 
-	sleep 3
+	sleep 5
 }
 
 measureParsec() {

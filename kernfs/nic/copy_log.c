@@ -17,6 +17,8 @@ TL_EVENT_TIMER(evt_handle_copy_done);
 TL_EVENT_TIMER(evt_manage_fsync_ack);
 TL_EVENT_TIMER(evt_wait_log_persisted_bitmap);
 TL_EVENT_TIMER(evt_set_log_persisted_bit);
+TL_EVENT_TIMER(evt_copy_log_to_last_wait_wr_compl);
+TL_EVENT_TIMER(evt_send_fsync_ack);
 
 #ifdef PROFILE_REALTIME_NET_BW_USAGE
 // TODO Replace it with realtime_bw_stat in util.h
@@ -306,7 +308,9 @@ void copy_log_to_last_replica_bg(void *arg)
 	}
 
 	// Wait for the WR completion.
+	START_TL_TIMER(evt_copy_log_to_last_wait_wr_compl);
 	IBV_AWAIT_WORK_COMPLETION(sock, wr_id);
+	END_TL_TIMER(evt_copy_log_to_last_wait_wr_compl);
 
 #ifdef PROFILE_REALTIME_NET_BW_USAGE
 	check_remote_copy_net_bw(c_arg->log_size);
@@ -327,6 +331,7 @@ void copy_log_to_last_replica_bg(void *arg)
 		}
 	}
 
+#ifdef NO_PIPELINING  // If NO_PIPELINING, all requests are serialized.
 	// Next pipeline stage 2: Send_fsync_ack.
 	manage_fsync_ack_arg *mfa_arg = (manage_fsync_ack_arg *)mlfs_alloc(
 		sizeof(manage_fsync_ack_arg));
@@ -335,12 +340,27 @@ void copy_log_to_last_replica_bg(void *arg)
 	mfa_arg->fsync = c_arg->fsync;
 	mfa_arg->fsync_ack_addr = c_arg->fsync_ack_addr;
 
-#ifdef NO_PIPELINING  // If NO_PIPELINING, all requests are serialized.
 	if (c_arg->fsync)
 		manage_fsync_ack((void *)mfa_arg);
 #else
-	thpool_add_work(rctx->thpool_manage_fsync_ack, manage_fsync_ack,
-			(void *)mfa_arg);
+	// On fsync, check once for better latency. Send fsync_ack to LibFS.
+	// NOTE fsync_ack_addr is 0 on rotation.
+	if (c_arg->fsync && c_arg->fsync_ack_addr &&
+	    all_previous_log_persisted_bits_set(rctx, c_arg->seqn)) {
+		send_fsync_ack(c_arg->libfs_id, c_arg->fsync_ack_addr);
+	} else {
+		// Next pipeline stage 2: Send_fsync_ack.
+		manage_fsync_ack_arg *mfa_arg =
+			(manage_fsync_ack_arg *)mlfs_alloc(
+				sizeof(manage_fsync_ack_arg));
+		mfa_arg->libfs_id = rctx->peer->id;
+		mfa_arg->seqn = c_arg->seqn;
+		mfa_arg->fsync = c_arg->fsync;
+		mfa_arg->fsync_ack_addr = c_arg->fsync_ack_addr;
+
+		thpool_add_work(rctx->thpool_manage_fsync_ack, manage_fsync_ack,
+				(void *)mfa_arg);
+	}
 #endif
 
 	// Next pipeline stage 3: Ack to last replica.
@@ -565,6 +585,26 @@ all_previous_log_persisted_bits_set(struct replication_context *rctx,
 	return ret;
 }
 
+static void send_fsync_ack(int libfs_id, uintptr_t fsync_ack_addr) {
+	START_TL_TIMER(evt_send_fsync_ack);
+	// Set LibFS's fsync ack bit to 1.
+	// mlfs_printf("Fsync ack to libfs sockfd=%d addr=0x%lx\n",
+	//             g_peers[libfs_id]->sockfd[SOCK_IO],
+	//             fsync_ack_addr);
+
+	// Send ack to libfs from replica 1.
+	uint8_t val = 1;
+	// Refer to struct fsync_acks.
+	uintptr_t dst_addr = fsync_ack_addr;
+	// mlfs_printf("fsync ack val:%hhu RDMA write to libfs_id=%d "
+	//             "addr=0x%lx\n",
+	//             val, libfs_id,
+	//             fsync_ack_addr + 1);
+	rpc_write_remote_val8(g_peers[libfs_id]->sockfd[SOCK_IO],
+			      dst_addr, val);
+	END_TL_TIMER(evt_send_fsync_ack);
+}
+
 static void manage_fsync_ack(void *arg)
 {
 	START_TL_TIMER(evt_manage_fsync_ack);
@@ -587,22 +627,8 @@ static void manage_fsync_ack(void *arg)
 		END_TL_TIMER(evt_wait_log_persisted_bitmap);
 #endif
 
-		// Set LibFS's fsync ack bit to 1.
-		// mlfs_printf("Fsync ack to libfs sockfd=%d addr=0x%lx\n",
-		//             g_peers[mfa_arg->libfs_id]->sockfd[SOCK_IO],
-		//             mfa_arg->fsync_ack_addr);
+		send_fsync_ack(mfa_arg->libfs_id, mfa_arg->fsync_ack_addr);
 
-		// Send ack to libfs from replica 1.
-		uint8_t val = 1;
-		// Refer to struct fsync_acks.
-		uintptr_t dst_addr = mfa_arg->fsync_ack_addr;
-		// mlfs_printf("fsync ack val:%hhu RDMA write to libfs_id=%d "
-		//             "addr=0x%lx\n",
-		//             val, mfa_arg->libfs_id,
-		//             mfa_arg->fsync_ack_addr + 1);
-		rpc_write_remote_val8(
-			g_peers[mfa_arg->libfs_id]->sockfd[SOCK_IO], dst_addr,
-			val);
 	} else {
 #ifndef NO_PIPELINING
 		START_TL_TIMER(evt_set_log_persisted_bit);
@@ -670,7 +696,12 @@ void print_copy_to_local_nvm_stat(void *arg)
 void print_copy_to_last_replica_stat(void *arg)
 {
 	PRINT_TL_TIMER(evt_copy_to_last_replica, arg);
+	PRINT_TL_TIMER(evt_copy_log_to_last_wait_wr_compl, arg);
+	PRINT_TL_TIMER(evt_send_fsync_ack, arg);
+
 	RESET_TL_TIMER(evt_copy_to_last_replica);
+	RESET_TL_TIMER(evt_copy_log_to_last_wait_wr_compl);
+	RESET_TL_TIMER(evt_send_fsync_ack);
 }
 void print_free_log_buf_stat(void *arg)
 {

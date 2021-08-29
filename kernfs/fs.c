@@ -1010,7 +1010,7 @@ static void handle_digest_request(void *arg)
 				(asm_rdtscp() - g_perf_stats.digest_time_tsc);
 
 #ifdef MLFS_PRINTF
-		show_storage_stats();
+		// show_storage_stats();
 #endif
 
 		if (enable_perf_stats)

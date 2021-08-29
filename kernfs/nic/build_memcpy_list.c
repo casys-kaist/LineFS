@@ -321,11 +321,12 @@ void build_memcpy_list(void *arg)
 	// show_storage_stats();
 #endif
 
-	if (!(bm_arg->seqn % 500)) {
-		printf("Data publish done. libfs_id=%d seqn=%lu\n", libfs_id,
-		       bm_arg->seqn);
-		show_storage_stats();
-	}
+	// To confirm progress.
+	// if (!(bm_arg->seqn % 500)) {
+	// 	printf("Data publish done. libfs_id=%d seqn=%lu\n", libfs_id,
+	// 	       bm_arg->seqn);
+	// 	show_storage_stats();
+	// }
 
 	// END_MP_PER_TASK_TIMER(evt_dig_req_per_task);
 	// END_MP_TOTAL_TIMER(evt_dig_req_total);

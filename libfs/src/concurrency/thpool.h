@@ -190,6 +190,7 @@ int thpool_num_threads_working(threadpool);
 
 void print_profile_result(threadpool);
 // void print_per_thread_pipeline_stat(threadpool);
+void print_thpool_stat (void *arg);
 
 #ifdef __cplusplus
 }

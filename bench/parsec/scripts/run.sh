@@ -29,9 +29,9 @@ case $BENCH in
 	if [ $MODE = "short" ]
 	then
 	    # (TIMEFORMAT='Elapsed:%3R'; time $PINNING ${PARSEC_PATH}/pkgs/kernels/streamcluster/inst/amd64-linux.gcc/bin/streamcluster 10 20 128 1000000 200000 5000 none output.txt 16)
-	    (TIMEFORMAT='Elapsed:%3R'; time $PINNING ${PARSEC_PATH}/pkgs/kernels/streamcluster/inst/amd64-linux.gcc/bin/streamcluster 10 20 128 600000 200000 5000 none output.txt 16)
+	    (TIMEFORMAT='Elapsed:%3R'; time $PINNING ${PARSEC_PATH}/pkgs/kernels/streamcluster/inst/amd64-linux.gcc/bin/streamcluster 10 20 128 600000 200000 5000 none /tmp/output.txt 16)
 	else
-	    (TIMEFORMAT='Elapsed:%3R'; time $PINNING ${PARSEC_PATH}/pkgs/kernels/streamcluster/inst/amd64-linux.gcc/bin/streamcluster 10 20 128 24000000 200000 5000 none output.txt 16)
+	    (TIMEFORMAT='Elapsed:%3R'; time $PINNING ${PARSEC_PATH}/pkgs/kernels/streamcluster/inst/amd64-linux.gcc/bin/streamcluster 10 20 128 24000000 200000 5000 none /tmp/output.txt 16)
 	fi
 	;;
 esac

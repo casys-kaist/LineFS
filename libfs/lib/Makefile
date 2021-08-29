@@ -50,7 +50,7 @@ redownload:
 	#
 	@rm -rf syscall_intercept
 	git clone https://github.com/pmem/syscall_intercept.git
-	if [ ! -d "jemalloc-4.5.0" ]; then tar xf jemalloc-4.5.0.tar.bz2; fi
+	@rm -rf "jemalloc-4.5.0"; tar xf jemalloc-4.5.0.tar.bz2
 
 clean:
 	@rm -rf dpdk-$(DPDK_VER)/x86_64-native-linuxapp-gcc

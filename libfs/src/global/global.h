@@ -175,7 +175,7 @@ typedef struct mlfs_config {
 				 * Ex) 2 means a prefetch request is sent to
 				 * NIC kernfs on every 2-block-write.
 				 */
-    int kernfs_num_cores; // Set core affinity to CPU 0-<kernfs_num_cores>.
+    // int kernfs_num_cores; // Set core affinity to CPU 0-<kernfs_num_cores>.
 
     //// Kernfs only
     int digest_noop;

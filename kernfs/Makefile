@@ -7,6 +7,9 @@
 SYS ?= $(shell gcc -dumpmachine)
 export SYS
 
+### Select distributed file system. 'assise' or 'linefs'
+DFS = linefs
+
 ####### Flags ##################################################################
 ### Print flags
 PRINT_FLAGS = -DPRINT_COLOR	# enable color scheme.
@@ -96,16 +99,22 @@ WITH_SNIC_NIC_FLAGS += -DNIC_SIDE
 # WITH_SNIC_NIC_FLAGS += -DCOALESCING  # Not supported yet.
 
 ifeq (,$(filter $(SYS), aarch64-linux-gnu))
-    ###########################################################################
-    #  Uncomment one of the followings. If it is host.                        #
-    ###########################################################################
-    # MLFS_FLAGS = $(COMMON_FLAGS) $(HOST_FLAGS)  # Disable NIC-offloading (hostonly)
+# x86
+
+ifeq (,$(filter $(DFS), assise))
+# LineFS
     MLFS_FLAGS = $(WITH_SNIC_HOST_FLAGS) 	# Enable NIC-offloading
-    ###########################################################################
 else
+# Assise
+    MLFS_FLAGS = $(COMMON_FLAGS) $(HOST_FLAGS)  # Disable NIC-offloading (hostonly)
+endif
+
+else
+# ARM
     MLFS_FLAGS = $(WITH_SNIC_NIC_FLAGS) 	# It is NIC kernfs.
 endif
 
+### Debug options.
 # DEBUG = -g -Og
 # DEBUG = -g -O0 -DNO_COMPILETIME_ASSERT_IN_ARM  # Use it when -g -Og fails.
 # DEBUG = -g3 -Ofast

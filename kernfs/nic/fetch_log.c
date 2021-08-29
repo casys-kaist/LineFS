@@ -20,6 +20,8 @@ threadpool thpool_copy_to_last_replica;
 TL_EVENT_TIMER(evt_fetch_from_local_nvm);
 TL_EVENT_TIMER(evt_fetch_from_primary_nic);
 TL_EVENT_TIMER(evt_read_log_from_primary);
+TL_EVENT_TIMER(evt_fetch_primary_log_set_fetch_done);
+TL_EVENT_TIMER(evt_fetch_primary_log_thpool_add_copy_to_local);
 
 #ifdef PROFILE_REALTIME_FETCH_LOG_FROM_PRIMARY
 rt_bw_stat fetch_log_from_primary_bw_stat = {0};
@@ -72,7 +74,7 @@ threadpool init_fsync_thpool(void)
 	int th_num = mlfs_conf.thread_num_fsync;
 	char th_name[] = "fsync";
 
-	thpool_fsync = thpool_init(th_num, th_name);
+	thpool_fsync = thpool_init_no_sleep(th_num, th_name);
 
 	print_thread_init(th_num, th_name);
 
@@ -317,8 +319,10 @@ void fetch_log_from_primary_nic_dram_bg(void *arg)
 					   lf_arg->remote_log_buf_addr, sockfd);
 	}
 #else
+	START_TL_TIMER(evt_fetch_primary_log_set_fetch_done);
 	set_fetch_done_flag(lf_arg->libfs_id, lf_arg->seqn,
 			    lf_arg->fetch_log_done_addr, sockfd); // SOCK_BG
+	END_TL_TIMER(evt_fetch_primary_log_set_fetch_done);
 #endif
 
 #if defined(NO_PIPELINEING) & ! defined(NO_PIPELINING_BG_COPY)
@@ -374,8 +378,10 @@ void fetch_log_from_primary_nic_dram_bg(void *arg)
 	if (lf_arg->fsync) {
 		// NOTE We don't send ack to libfs on fsync assuming that local copy
 		// finishes earlier than remote copy.
+		START_TL_TIMER(evt_fetch_primary_log_thpool_add_copy_to_local);
 		thpool_add_work(thpool_copy_to_local_nvm,
 				copy_log_to_local_nvm_bg, (void *)cl_arg);
+		END_TL_TIMER(evt_fetch_primary_log_thpool_add_copy_to_local);
 
 		// Call function directly on fsync.
 		END_TL_TIMER(evt_fetch_from_primary_nic);
@@ -428,6 +434,7 @@ void print_fetch_log_thpool_stat(void)
 #ifdef PROFILE_THPOOL
 	print_profile_result(thpool_log_fetch_from_local_nvm);
 	print_profile_result(thpool_log_fetch_from_primary_nic_dram);
+	print_profile_result(thpool_fsync);
 #endif
 }
 
@@ -439,9 +446,14 @@ void print_log_fetch_from_local_nvm_stat(void *arg) {
 
 void print_log_fetch_from_primary_nic_dram_stat(void *arg) {
 	PRINT_TL_TIMER(evt_fetch_from_primary_nic, arg);
-	// PRINT_TL_TIMER(evt_read_log_from_primary, arg);
+	PRINT_TL_TIMER(evt_read_log_from_primary, arg);
+	PRINT_TL_TIMER(evt_fetch_primary_log_set_fetch_done, arg);
+	PRINT_TL_TIMER(evt_fetch_primary_log_thpool_add_copy_to_local, arg);
 
 	RESET_TL_TIMER(evt_fetch_from_primary_nic);
+	RESET_TL_TIMER(evt_read_log_from_primary);
+	RESET_TL_TIMER(evt_fetch_primary_log_set_fetch_done);
+	RESET_TL_TIMER(evt_fetch_primary_log_thpool_add_copy_to_local);
 }
 
 /** Macros for the following functions.

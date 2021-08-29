@@ -198,18 +198,6 @@ static inline void print_rpcmsg_replicate (struct rpcmsg_replicate* rep, const c
 	    rep->is_imm, rep->ack_bit_p, rep->ack_bit_p);
 }
 
-static inline uint64_t generate_fetch_seqn(struct peer_socket *sock)
-{
-    uint64_t ret;
-
-    pthread_spin_lock(&sock->fetch_seqn_lock);
-    ret = ++sock->fetch_seqn;
-    // printf("[SEQN] sockfd=%d fetch_seqn=%lu issued.\n", sock->fd, ret);
-    pthread_spin_unlock(&sock->fetch_seqn_lock);
-
-    return ret;
-}
-
 static inline uint64_t generate_rpc_seqn(struct peer_socket *sock)
 {
     uint64_t ret;

@@ -13,7 +13,7 @@ Usage: $0 [ -k ]
 
 runParsec()
 {
-	(cd ${PROJ_DIR}/bench/parsec; ./scripts/run.sh -m long -b streamcluster &> /dev/null &)
+	# (cd ${PROJ_DIR}/bench/parsec; ./scripts/run.sh -m long -b streamcluster &> /dev/null &)
 	ssh $HOST_2 "(cd ${PROJ_DIR}/bench/parsec; ./scripts/run.sh -m long -b streamcluster &> /dev/null &)"
 	ssh $HOST_3 "(cd ${PROJ_DIR}/bench/parsec; ./scripts/run.sh -m long -b streamcluster &> /dev/null &)"
 }

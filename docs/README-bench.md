@@ -3,6 +3,8 @@
 - [1. Set TTY variables](#1-set-tty-variables)
 - [2. Pinning CPU cores](#2-pinning-cpu-cores)
 - [3. Microbenchmarks (throughput and latency)](#3-microbenchmarks-throughput-and-latency)
+	- [3.1. Build microbenchmarks](#31-build-microbenchmarks)
+	- [3.2. Run microbenchmarks](#32-run-microbenchmarks)
 - [4. LevelDB](#4-leveldb)
 	- [4.1. Required package](#41-required-package)
 	- [4.2. Build LevelDB](#42-build-leveldb)
@@ -49,21 +51,64 @@ NIC_3_TTY=0
 
 ## 2. Pinning CPU cores
 
-Pinning CPU cores to a single NUMA node improves the performance of LineFS. You need to configure it at two files:
+Pinning CPU cores to a single NUMA node improves the performance of LineFS. You need to configure it at the following files:
 
 - `mlfs_config.sh`: Set `NUMA_NODE`. For example, set its value to 1 to use NUMA node 1.
-- `scripts/global.sh`: Set `PINNING`. For example, to use NUMA node 0, Set `PINNING="numactl -N0 -m0"`.
+- `scripts/global.sh`: Set `PINNING`. For example, set `PINNING="numactl -N0 -m0"` to use NUMA node 0 and set `PINNING="numactl -N1 -m1"` to use NUMA node 1.
+- `scripts/run_stress_ng.sh`: Set `taskset` argument. For example, if you want to run stress-ng on NUMA node 1 that includes 16 cores, from core 16 to core 31, set `--taskset 16-31`.
 
 ## 3. Microbenchmarks (throughput and latency)
+
+### 3.1. Build microbenchmarks
+
+```shell
+cd bench/micro
+make -j`nproc`
+```
+
+### 3.2. Run microbenchmarks
 
 To run throughput microbenchmark:
 
 ```shell
 cd bench/micro
-./run_all_linefs.sh
+./run_all.sh
 ```
 
-You can select which benchmark to run in the `run_all_linefs.sh` script.
+You can select which benchmark to run in the `bench/micro/run_all.sh` script. For example, a line `runLatencyMicrobench linefs streamcluster` executes the latency microbenchmark with streamcluster as a CPU-intensive job on LineFS.
+
+```shell
+...
+if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then # script is executed directly.
+	# Kill all iobench processes.
+	sudo pkill -9 iobench
+
+	# Build linefs.
+	buildLineFS
+
+	# Run LineFS.
+	runLatencyMicrobench linefs
+	runLatencyMicrobench linefs streamcluster
+	runThroughputMicrobench linefs
+	runThroughputMicrobench linefs streamcluster
+
+	# Build assise.
+	buildAssise
+
+	# Run Assise.
+	runLatencyMicrobench assise
+	runLatencyMicrobench assise streamcluster
+	runThroughputMicrobench assise
+	runThroughputMicrobench assise streamcluster
+
+	# Print results.
+	printLatencyMicrobenchResults linefs
+	printLatencyMicrobenchResults assise
+	printThroughputMicrobenchResults linefs
+	printThroughputMicrobenchResults assise
+fi
+...
+```
 
 To change benchmark options like I/O size and the file size, modify `bench/micro/scripts/run_iobench_lat.sh` for the latency benchmark and `bench/micro/scripts/run_iobench.sh` for the throughput benchmark.
 
@@ -73,6 +118,11 @@ To change benchmark options like I/O size and the file size, modify `bench/micro
 
 Install [snappy](https://github.com/google/snappy) package.
 
+```shell
+sudo apt install libsnappy-dev
+```
+
+Or, install it from source:
 ```shell
 git clone https://github.com/google/snappy.git
 cd snappy
@@ -96,11 +146,10 @@ make -j`nproc`
 
 ``` shell
 cd bench/leveldb/mlfs
-./run_bench_histo.sh -t linefs 		# Run LineFS alone.
-./run_bench_histo.sh -t linefs -c  	# Run LineFS with streamcluster.
-./run_bench_histo.sh -t assise 		# Run Assise alone.
-./run_bench_histo.sh -t assise -c  	# Run Assise with streamcluster.
+./run_all.sh
 ```
+
+You can select experiments to run in `bench/leveldb/mlfs/run_all.sh`.
 
 > Sometimes, LevelDB run with `fillrandom` or `fillsync` workload hangs while printing a result histogram. You can run the workload again by changing `bench/leveldb/mlfs/run_bench_histo.sh`. For example,
 >
@@ -143,6 +192,8 @@ autoheader
 automake --add-missing
 autoconf
 
+# Restore lines containing keywords 'mlfs' and 'MLFS' in Makefile.in
+
 ./configure
 make  # Without -j option.
 ```
@@ -158,17 +209,12 @@ echo 0 | sudo tee /proc/sys/kernel/randomize_va_space
 
 ### 5.4. Run filebench
 
-The following commands run filebench experiments.
-
 ```shell
 cd bench/filebench
-./run_all.sh -t nic  # Run with LineFS
-./run_all.sh -t nic -c  # Run with LineFS and a cpu-intensive job.
-./run_all.sh -t hostonly # Run with Assise
-./run_all.sh -t hostonly -c # Run with Assise and a cpu-intensive job.
+./run_all.sh
 ```
 
-> If you want to run `fileserver` or `varmail` workload individually, use the scripts `run_fileserver.sh` and `run_varmail.sh`.
+You can select experiments to run by changing `bench/filebench/run_all.sh` script.
 
 ### 5.5. Known issues
 

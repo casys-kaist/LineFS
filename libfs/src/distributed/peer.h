@@ -63,11 +63,17 @@ struct peer_socket {
 	int fd;
 	int type;
 	uint64_t seqn;
-	uint64_t fetch_seqn; // TODO May be not required. or moved to rsync_ctx.
 	struct peer_id *peer;
 	pthread_spinlock_t seqn_lock;
-	pthread_spinlock_t fetch_seqn_lock;
 	uint64_t per_libfs_seqns[MAX_LIBFS_PROCESSES + g_n_nodes]; // To match index of g_sync_ctx.
+};
+
+/**
+ * @brief Global fetch seqn. Used by LibFS.
+ */
+struct fetch_seqn {
+	uint64_t n;
+	pthread_spinlock_t fetch_seqn_lock;
 };
 
 struct rpc_pending_io {
@@ -93,6 +99,7 @@ extern int g_sock_count;
 extern struct peer_id *g_kernfs_peers[g_n_nodes];
 extern struct peer_id *g_peers[peer_bitmap_size];
 extern struct peer_socket *g_rpc_socks[sock_bitmap_size];
+extern struct fetch_seqn g_fetch_seqn;
 
 void peer_init();
 void lock_peer_access();

@@ -830,6 +830,16 @@ struct prefetch_arg {
     uint64_t *fsync_ack_flag;
 };
 
+static inline uint64_t generate_fetch_seqn(struct fetch_seqn *fetch_seqn)
+{
+    uint64_t ret;
+    pthread_spin_lock(&fetch_seqn->fetch_seqn_lock);
+    ret = ++fetch_seqn->n;
+    // printf("[SEQN] sockfd=%d fetch_seqn=%lu issued.\n", sock->fd, ret);
+    pthread_spin_unlock(&fetch_seqn->fetch_seqn_lock);
+    return ret;
+}
+
 /**
  * @Synopsis  Send a message of prefetch request. It is a thread worker.
  *
@@ -845,9 +855,14 @@ static void send_log_prefetch_msg(void *arg)
     pf_arg = (struct prefetch_arg*) arg;
 
     nic_kernfs_id = host_kid_to_nic_kid(g_kernfs_id);
-    sockfd = g_kernfs_peers[nic_kernfs_id]->sockfd[SOCK_BG];
+    if (pf_arg->is_fsync) {
+	    // low-latency channel.
+	    sockfd = g_kernfs_peers[nic_kernfs_id]->sockfd[SOCK_IO];
+    } else {
+	    sockfd = g_kernfs_peers[nic_kernfs_id]->sockfd[SOCK_BG];
+    }
 
-    seqn = generate_fetch_seqn(g_rpc_socks[sockfd]);
+    seqn = generate_fetch_seqn(&g_fetch_seqn);
     mlfs_assert(seqn > atomic_load(&get_next_peer()->recently_issued_seqn));
     atomic_store(&get_next_peer()->recently_issued_seqn, seqn);
 
@@ -1089,12 +1104,14 @@ static void send_log_prefetch_request(addr_t prefetch_start_blknr,
 	pf_arg->is_fsync = is_fsync;
 	pf_arg->fsync_ack_flag = fsync_ack_flag;
 
-	// Send with another thread.
-	thpool_add_work(thread_pool_log_prefetch_req, send_log_prefetch_msg,
-			(void *)pf_arg);
-
-	// Send in the same thread.
-	// send_log_prefetch_msg((void *)pf_arg);
+	if (is_fsync) {
+		// Send in the same thread.
+		send_log_prefetch_msg((void *)pf_arg);
+	} else {
+		// Send in another thread.
+		thpool_add_work(thread_pool_log_prefetch_req,
+				send_log_prefetch_msg, (void *)pf_arg);
+	}
 }
 
 ///////////////////////// Functions for COALESCING ////////////////////////////

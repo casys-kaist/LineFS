@@ -28,7 +28,8 @@ while getopts "ct:?h" opt; do
 	esac
 done
 
-OUTPUT_DIR="leveldb_linefs/${SYSTEM}"
+OUTPUT_DIR="outputs/${SYSTEM}"
+RESULT_DIR="results/${SYSTEM}/results.txt"
 
 run_parsec() {
 	(
@@ -58,9 +59,11 @@ run_leveldb() {
 			echo "Run LevelDB: $WL"
 
 			if [ "$WL" == "fillsync" ]; then
-				nice -n -20 ./run.sh ./db_bench.mlfs --db=$DIR --num=1000000000 --histogram=1 --value_size=1024 --benchmarks=${WL} 2>&1 | tee ./${OUTPUT_DIR}/${WL}_${ROUND}
+				# nice -n -20 ./run.sh ./db_bench.mlfs --db=$DIR --num=1000000000 --histogram=1 --value_size=1024 --benchmarks=${WL} 2>&1 | tee ./${OUTPUT_DIR}/${WL}_${ROUND}
+				./run.sh ./db_bench.mlfs --db=$DIR --num=1000000000 --histogram=1 --value_size=1024 --benchmarks=${WL} 2>&1 | tee ./${OUTPUT_DIR}/${WL}_${ROUND}
 			else
-				nice -n -20 ./run.sh ./db_bench.mlfs --db=$DIR --num=1000000 --histogram=1 --value_size=1024 --benchmarks=${WL} 2>&1 | tee ./${OUTPUT_DIR}/${WL}_${ROUND}
+				# nice -n -20 ./run.sh ./db_bench.mlfs --db=$DIR --num=1000000 --histogram=1 --value_size=1024 --benchmarks=${WL} 2>&1 | tee ./${OUTPUT_DIR}/${WL}_${ROUND}
+				./run.sh ./db_bench.mlfs --db=$DIR --num=1000000 --histogram=1 --value_size=1024 --benchmarks=${WL} 2>&1 | tee ./${OUTPUT_DIR}/${WL}_${ROUND}
 			fi
 
 			# Terminate parsec.
@@ -82,9 +85,11 @@ echo "------ Configurations -------"
 echo "SYSTEM     : $SYSTEM"
 echo "CPU_JOB    : $RUN_PARSEC"
 echo "OUTPUT_DIR : $OUTPUT_DIR"
+echo "RESULT_DIR : $RESULT_DIR"
 echo "-----------------------------"
 
 mkdir -p $OUTPUT_DIR
+mkdir -p $RESULT_DIR
 
 # Quit already running streamcluster instance.
 quit_parsec
@@ -122,7 +127,8 @@ echo "------ Configurations -------"
 echo "SYSTEM     : $SYSTEM"
 echo "CPU_JOB    : $RUN_PARSEC"
 echo "OUTPUT_DIR : $OUTPUT_DIR"
+echo "RESULT_DIR : $RESULT_DIR"
 echo "-----------------------------"
 
 # Parse results.
-./parse_results.sh $OUTPUT_DIR
+./parse_results.sh $OUTPUT_DIR | tee $RESULT_DIR

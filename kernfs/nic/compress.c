@@ -38,6 +38,7 @@ void compress_log_bg(void *arg)
 	char *log_buf;
 	uint64_t log_size;
 	uint64_t orig_size; // It is different from log_size when data is comrpessed.
+	int sockfd;
 
 	START_TL_TIMER(evt_compress);
 
@@ -46,7 +47,12 @@ void compress_log_bg(void *arg)
 	print_compress_arg(c_arg);
 
 	// Next pipeline: Send an RPC to the Replica 1.
-	int sockfd = c_arg->rctx->next_digest_sockfd; // SOCK_BG channel.
+	if (c_arg->fsync) {
+		// Low-lat channel.
+		sockfd = c_arg->rctx->next_rep_msg_sockfd[0];
+	} else {
+		sockfd = c_arg->rctx->next_digest_sockfd; // SOCK_BG channel.
+	}
 
 #ifdef COMPRESS_LOG
 	if (c_arg->fsync) {

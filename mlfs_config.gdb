@@ -1,7 +1,7 @@
 # options are copied from mlfs_conf.sh
 
 # set environment NET_INTERFACE_NAME="enp175s0f1"
-set environment X86_NET_INTERFACE_NAME="ens1f0"
+set environment X86_NET_INTERFACE_NAME="enp59s0f0"
 set environment ARM_NET_INTERFACE_NAME="enp3s0f0"
 set environment PORT_NUM="12345"
 set environment PERSIST_NVM=1
@@ -12,8 +12,7 @@ set environment DIGEST_THRESHOLD=30
 set environment DIGEST_OPT_FCONCURRENT=0
 set environment IOAT_MEMCPY_OFFLOAD=1
 set environment ASYNC_REPLICATION=0	# background log copy.
-set environment KERNFS_NUM_CORES=16 # The number of cores pinned for kernfs.
-set environment NUMA_NODE=1		# CPU core binding.
+set environment NUMA_NODE=0		# CPU core binding.
 
 # nic-offload
 set environment DIGEST_OPT_HOST_MEMCPY=1

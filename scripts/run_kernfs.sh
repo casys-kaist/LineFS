@@ -36,6 +36,6 @@ if [ $DEBUG = "1" ]; then
     (cd kernfs/tests && sudo gdb -ex run kernfs)
     # (cd kernfs/tests && sudo gdb --tty=/dev/pts/0 -ex run kernfs)
 else
-    (cd kernfs/tests && sudo nice -n -20 ./run.sh kernfs)
-    # (cd kernfs/tests && sudo ./run.sh kernfs) # No priority.
+    # (cd kernfs/tests && sudo nice -n -20 ./run.sh kernfs)
+    (cd kernfs/tests && sudo ./run.sh kernfs) # No priority.
 fi

@@ -38,7 +38,7 @@ void load_mlfs_configs(void) {
     mlfs_conf.x86_net_interface_name = getenv("X86_NET_INTERFACE_NAME");
     mlfs_conf.arm_net_interface_name = getenv("ARM_NET_INTERFACE_NAME");
     mlfs_conf.port = getenv("PORT_NUM");
-    mlfs_conf.kernfs_num_cores = get_val_from_env("KERNFS_NUM_CORES");
+    // mlfs_conf.kernfs_num_cores = get_val_from_env("KERNFS_NUM_CORES");
 
     // TODO change it as runtime config after refactoring.
 #ifdef NIC_OFFLOAD

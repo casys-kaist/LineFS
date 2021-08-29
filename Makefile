@@ -29,6 +29,7 @@ bench-micro:
 
 parsec:
 	cd bench/parsec && if [ -d parsec-3.0 ]; then make; else make redownload && make; fi
+
 mkfs:
 	cd kernfs/tests && sudo ./mkfs.sh
 
@@ -37,3 +38,27 @@ spdk-init:
 
 rdma:
 	cd libfs/lib/rdma && make clean && make
+
+kernfs-assise:
+# Modify Makefiles. Replace "DFS = linefs" to "DFS = assise".
+	@echo "Building Assise SharedFS..."
+	sed -i 's/DFS = linefs/DFS = assise/g' kernfs/Makefile
+	make kernfs
+
+kernfs-linefs:
+# Modify Makefiles. Replace "DFS = assise" to "DFS = linefs".
+	@echo "Building LineFS SharedFS/NICFS..."
+	sed -i 's/DFS = assise/DFS = linefs/g' kernfs/Makefile
+	make kernfs
+
+libfs-assise:
+# Modify Makefiles. Replace "DFS = linefs" to "DFS = assise".
+	@echo "Building Assise LibFS..."
+	sed -i 's/DFS = linefs/DFS = assise/g' libfs/Makefile
+	make libfs
+
+libfs-linefs:
+# Modify Makefiles. Replace "DFS = assise" to "DFS = linefs".
+	@echo "Building LineFS LibFS..."
+	sed -i 's/DFS = assise/DFS = linefs/g' libfs/Makefile
+	make libfs

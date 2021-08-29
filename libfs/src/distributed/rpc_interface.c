@@ -984,9 +984,9 @@ static void rpc_send_replicate_rdma_entry(peer_meta_t *peer,
 
     END_TIMER(evt_rep_critical_host); // critical path ends at replica 2 and libfs.
     START_TIMER(evt_rep_wait_req_done);
-    // rpc_forward_msg_sync(send_sockfd, msg);
-    // rpc_forward_msg(send_sockfd, msg);
-    rpc_forward_msg_no_seqn(send_sockfd, msg);
+//     rpc_forward_msg_no_seqn(send_sockfd, msg);
+    rpc_forward_msg_no_seqn_sync(send_sockfd, msg);
+//     rpc_forward_msg_sync(send_sockfd, msg);
     END_TIMER(evt_rep_wait_req_done);
 
 #ifdef PROFILE_LOG_COPY_BW
@@ -1142,16 +1142,14 @@ rpc_replicate_log_initiate (peer_meta_t *peer, struct list_head *rdma_entries)
 
 #ifdef NO_BUSY_WAIT
 	    if (rep.ack_bit_p) {
-		    pthread_mutex_lock(&rep_ack_mutex);
-
 		    // This is unlocked in signal_callback() at log.c
 		    pthread_mutex_lock(&rep_ack_mutex);
-
-		    pthread_mutex_unlock(&rep_ack_mutex);
+		//     pthread_mutex_unlock(&rep_ack_mutex);
 	    }
 #else
 	    // Wait for ack.
-	    IBV_AWAIT_ACK_SPINNING(rcv_sockfd, ack_bit_p);
+	//     IBV_AWAIT_ACK_SPINNING(rcv_sockfd, ack_bit_p);
+	    IBV_AWAIT_ACK_POLLING(rcv_sockfd, ack_bit_p);
 #endif
             pr_rep("Replication done: dst_ip=%s remote_addr=0x%lx "
                     "len=%lu(bytes) send_sockfd=%d rcv_sockfd=%d",
@@ -1896,7 +1894,8 @@ void rpc_set_remote_bit(int sockfd, uintptr_t remote_bit_addr)
 	meta = create_rdma_meta((uintptr_t)local_bit_val, remote_bit_addr,
 				sizeof(uint64_t));
 	START_TIMER(evt_set_remote_bit1);
-	IBV_WRAPPER_WRITE_ASYNC(sockfd, meta, MR_DRAM_BUFFER, MR_DRAM_BUFFER);
+	// IBV_WRAPPER_WRITE_ASYNC(sockfd, meta, MR_DRAM_BUFFER, MR_DRAM_BUFFER);
+	IBV_WRAPPER_WRITE_SYNC(sockfd, meta, MR_DRAM_BUFFER, MR_DRAM_BUFFER);
 	END_TIMER(evt_set_remote_bit1);
 
 	// nic_slab_free(local_bit_val); // TODO Is it okay to free it right after

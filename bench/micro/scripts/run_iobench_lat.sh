@@ -30,7 +30,7 @@ while getopts "t:cy?h" opt; do
 	case $opt in
 	c)
 		ACTION="cpu"
-		echo "Run with CPU-intensive job, parsec."
+		echo "Run with CPU-intensive job, streamcluster."
 		;;
 	t)
 		TYPE=$OPTARG
@@ -64,7 +64,7 @@ fi
 
 # Kill processes already running.
 # if [ "$ACTION" = "cpu" ]; then
-echo "Kill parsec."
+echo "Kill streamcluster."
 killParsec
 # killStressNg
 # fi
@@ -74,6 +74,9 @@ killHyperloopServers
 # fi
 # kernfs is reset by reset_kernfs().
 
+# Delete directory if there is already one.
+[ -d $DIR_PATH ] && rm -rf $DIR_PATH
+
 # Main loop.
 for OP in $OPS; do
 	FILE_PATH="${DIR_PATH}/${OP}"
@@ -81,6 +84,7 @@ for OP in $OPS; do
 
 	for IO_SIZE in $IO_SIZES; do
 		RUN_CMD="sudo $PINNING ./run.sh ./iobench_lat -s $OP $FILE_SIZE $IO_SIZE 1"
+		# RUN_CMD="sudo nice -n -20 $PINNING ./run.sh ./iobench_lat -s $OP $FILE_SIZE $IO_SIZE 1"
 		FILE_NAME="${FILE_PATH}/${OP}_${FILE_SIZE}_${IO_SIZE}_${JOB_NAME}"
 
 		if [ "$HYPERLOOP" = "true" ]; then
@@ -92,20 +96,23 @@ for OP in $OPS; do
 		reset_kernfs $TYPE
 
 		if [ "$ACTION" = "cpu" ]; then
-			echo "Run parsec."
+			echo "Run streamcluster."
 			runParsec
 			# runStressNg
 		fi
+
+		sleep 2
 
 		echo "Run Latency microbenchamrk with command: $RUN_CMD"
 		echo "$RUN_CMD" >$FILE_NAME
 		/usr/bin/time -f "Benchmark finished.\nElapsed time: %e seconds" $RUN_CMD >>$FILE_NAME
 		# time $RUN_CMD | tee $FILE_NAME
 		echo Done.
-		sleep 10
+
+		sleep 3
 
 		if [ "$ACTION" = "cpu" ]; then
-			echo "Kill parsec."
+			echo "Kill streamcluster."
 			killParsec
 			# killStressNg
 		fi
@@ -113,6 +120,8 @@ for OP in $OPS; do
 		if [ "$HYPERLOOP" = "true" ]; then
 			killHyperloopServers
 		fi
+
+		sleep 3
 	done
 
 	# parsing the result files.

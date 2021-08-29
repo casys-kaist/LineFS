@@ -42,8 +42,12 @@ static void send_fetch_loghdr_rpc_to_next_replica(
 	struct replication_context *rctx, uint64_t seqn, uintptr_t loghdr_buf,
 	uint32_t n_loghdrs, uint64_t digest_blk_cnt, addr_t fetch_start_blknr,
 	uintptr_t fetch_loghdr_done_addr);
+static int check_loghdr_types(struct logheader *loghdr);
+static int check_loghdr_list(struct logheader *buf, uint32_t n_loghdrs);
+static void print_loghdr_error(struct logheader *buf, uint64_t i, uint64_t num_blks);
 static void print_build_loghdrs_arg(build_loghdrs_arg *ar);
 static void print_fetch_loghdrs_arg(fetch_loghdrs_arg *ar);
+static void print_loghdr(struct logheader *buf, uint64_t i);
 void print_loghdr_build_stat(void *arg);
 void print_loghdr_fetch_stat(void *arg);
 

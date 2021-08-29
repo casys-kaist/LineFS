@@ -348,7 +348,7 @@ $(STATIC_OUTDIR)/db_bench:db/db_bench.cc $(STATIC_LIBOBJECTS) $(TESTUTIL)
 
 $(MLFS_OUTDIR)/db_bench:db/db_bench.cc $(STATIC_LIBOBJECTS) $(TESTUTIL)
 	$(CXX) $(LDFLAGS) $(CXXFLAGS) db/db_bench.cc $(STATIC_LIBOBJECTS) $(TESTUTIL) -o $(addsuffix .mlfs, $@) $(LIBS) $(MLFS_LDFLAGS) -DMLFS
-	cp run.sh run_bench.sh run_bench_histo.sh get_trace.sh mkfs.sh .gdbinit $(MLFS_OUTDIR)
+	cp run.sh run_all.sh run_bench.sh run_bench_histo.sh get_trace.sh mkfs.sh parse_results.sh .gdbinit $(MLFS_OUTDIR)
 
 $(STATIC_OUTDIR)/strata_test:db/strata_test.cc $(STATIC_LIBOBJECTS) $(TESTUTIL)
 	$(CXX) $(LDFLAGS) $(CXXFLAGS) db/strata_test.cc $(STATIC_LIBOBJECTS) $(TESTUTIL) -o  $@ $(LIBS) $(MLFS_LDFLAGS) -DMLFS

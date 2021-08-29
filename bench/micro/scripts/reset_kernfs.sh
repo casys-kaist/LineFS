@@ -111,7 +111,7 @@ reset_kernfs() {
     else
         echo "Waiting for all the KernFSes to be ready. (Adjust sleep time at reset_kernfs() in reset_kernfs.sh)"
         # sleepAndCountdown 50 # 12G file size.
-        sleepAndCountdown 65 # 19G file size.
+        sleepAndCountdown 50 # 19G file size.
         # sleepAndCountdown 80 # 24G file size.
         # sleepAndCountdown 100 # 48G file size.
     fi
@@ -127,29 +127,31 @@ Usage: $0 [ -t hostonly|nic ] [ -k ]
     -t : System type. <hostonly|nic> (hostonly is default)"
 }
 
-KILL=0
+if [[ "${BASH_SOURCE[0]}" != "${0}" ]]; then # script is sourced.
+    unset -f print_usage
+else # script is executed directly.
+    KILL=0
 
-while getopts "kt:?h" opt; do
-    case $opt in
-    k)
-        KILL=1
-        ;;
-    t)
-        SYSTEM=$OPTARG
-        ;;
-    h | ?)
+    while getopts "kt:?h" opt; do
+        case $opt in
+        k)
+            KILL=1
+            ;;
+        t)
+            SYSTEM=$OPTARG
+            ;;
+        h | ?)
+            print_usage
+            exit 2
+            ;;
+        esac
+    done
+
+    if [ "$SYSTEM" != "hostonly" ] && [ "$SYSTEM" != "nic" ]; then
         print_usage
         exit 2
-        ;;
-    esac
-done
+    fi
 
-if [ "$SYSTEM" != "hostonly" ] && [ "$SYSTEM" != "nic" ]; then
-    print_usage
-    exit 2
-fi
-
-if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then # script is executed directly.
     if [ $KILL = 1 ]; then
         kill_kernfs "$SYSTEM"
     else

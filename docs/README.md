@@ -23,13 +23,15 @@
 - [7. Formatting devices](#7-formatting-devices)
 - [8. Deploying LineFS](#8-deploying-linefs)
   - [8.1. Deployment scenario](#81-deployment-scenario)
-  - [8.2. Run kernel workers on host machines](#82-run-kernel-workers-on-host-machines)
-  - [8.3. Run NICFS on SmartNIC](#83-run-nicfs-on-smartnic)
-  - [8.4. Run applications](#84-run-applications)
+  - [8.2. Setup I/OAT device](#82-setup-ioat-device)
+  - [8.3. Run kernel workers on host machines](#83-run-kernel-workers-on-host-machines)
+  - [8.4. Run NICFS on SmartNIC](#84-run-nicfs-on-smartnic)
+    - [8.4.1. Make NICFSes sleep for different durations](#841-make-nicfses-sleep-for-different-durations)
+  - [8.5. Run applications](#85-run-applications)
 - [9. Run Assise](#9-run-assise)
 - [10. Running benchmarks](#10-running-benchmarks)
 
-If you are using our testbed for SOSP 2021 Artifact Evaluation, please read [README-AE.md](README-AE.md) first. After reading `README-AE.md`, you can directly go on to [Configuring LineFS](#configuring-linefs).
+If you are using our testbed for SOSP 2021 Artifact Evaluation, please read [README for Artifact Evaluation Reviewers]() first. It is provided on the HotCRP submission page. After reading it, you can directly go on to [Configuring LineFS](#5-configuring-linefs).
 
 ## 1. System requirements (Tested environment)
 
@@ -130,36 +132,35 @@ NIC_3="host03-nic-rdma"
 
 Or you can use IP addresses instead of hostnames.
 
-
 ### 5.2. Compile-time configurations
 
-`kernfs/Makefile` and `libfs/Makefile` includes compile-time configurations. You need to re-compile LineFS by running as below.
+Locations of compile-time configurations are as below.
 
-```shell
-# At the project root directory.
+- `kernfs/Makefile` and `libfs/Makefile` includes compile-time configurations. You have to re-compile LineFS to apply changes in the configurations. You can leave it as a default.
+- Some constants like the private log size, the number of max LibFS processes are defined in `libfs/src/global/global.h`. You can leave it as a default.
+- IP addresses of machines and SmartNICs and the order of replication chain are defined as a variable `hot_replicas` in `libfs/src/distributed/rpc_interface.h`. You have to set correct values for this configuration.
+- A device size to be used by LineFS is defined as a variable `dev_size` in `libfs/src/storage/storage.h`. You can leave it as a default.
+- Paths of pmem devices should be defined in `storage.c` as below. `g_dev_path[1]` is the path of the device for the public area and `g_dev_path[4]` is for the log area. You have to set correct values for this configuration. Here is an example.
 
-# If you modified 'kernfs/Makefile', run:
-make kernfs
-
-# If you modified 'libfs/Makefile', run:
-make libfs
-```
-
-Some constants like the private log size, the number of max LibFS processes are defined in `libfs/src/global/global.h`.
-
-IP addresses of machines and SmartNICs and the order of replication chain are defined as a variable `hot_replicas` in `libfs/src/distributed/rpc_interface.h`.
-
-A device size to be used by LineFS is defined as variable `dev_size` in `libfs/src/storage/storage.h`.
+  ```c
+  char *g_dev_path[] = {
+  (char *)"unused",
+  (char *)"/dev/dax0.0", # Public Area
+  (char *)"/backup/mlfs_ssd",
+  (char *)"/backup/mlfs_hdd",
+  (char *)"/dev/dax0.1", # Log Area
+  };
+  ```
 
 ### 5.3. Run-time configurations
 
-`mlfs_config.sh` includes run-time configurations. To apply a change in configurations you need to restart LineFS.
+`mlfs_config.sh` includes run-time configurations. To apply changes in the configurations you need to restart LineFS.
 
 ## 6. Compiling LineFS
 
 ### 6.1. Build on the host machine
 
-The following command will do all the compilations required on the host machine. It includes downloading and compiling libraries, compiling *LibFS*, *kernel worker*, an RDMA module and benchmarks, setting SPDK up, and formatting file system.
+The following command will do all the compilations required on the host machine. It includes downloading and compiling libraries, compiling *LibFS* library, a *kernel worker*, an RDMA module and benchmarks, setting SPDK up, and formatting file system.
 
 ```shell
 make host-init
@@ -170,8 +171,8 @@ You can build the components one by one with the following commands. Refer to `M
 ```shell
 make host-lib   # Build host libraries.
 make rdma       # Build rdma module.
-make kernfs     # Build kernel worker. TODO: change to another name.
-make libfs      # Build LibFS.
+make kernfs-linefs     # Build kernel worker.
+make libfs-linefs      # Build LibFS.
 ```
 
 ### 6.2. Build on SmartNIC
@@ -185,9 +186,9 @@ make snic-init
 You can build the components one by one with the following commands. Refer to `Makefile` in the project root directory for detail.
 
 ```shell
-make snic-lib   # Build libraries.
-make rdma       # Build rdma module.
-make kernfs     # Build `NICFS` TODO: change to another name.
+make snic-lib           # Build libraries.
+make rdma               # Build rdma module.
+make kernfs-linefs      # Build `NICFS`
 ```
 
 ## 7. Formatting devices
@@ -205,20 +206,30 @@ make mkfs
 Let's think of the following deployment scenario.
 There are three host machines and each host machine is equipped with a SmartNIC.
 
-|| Hostname |  IP address
-|:---:|:---:|:---: 
-|*Host machine 1* | `host01` | 192.168.13.111
-|*Host machine 2* | `host02` | 192.168.13.113
-|*Host machine 3* | `host03` | 192.168.13.115
-|SmartNIC of *Host machine 1* | `host01-nic` | 192.168.13.112
-|SmartNIC of *Host machine 2* | `host02-nic` | 192.168.13.114
-|SmartNIC of *Host machine 3* | `host03-nic` | 192.168.13.116
+|                              |   Hostname   | RDMA IP address |
+| :--------------------------: | :----------: | :-------------: |
+|       *Host machine 1*       |   `host01`   | 192.168.13.111  |
+|       *Host machine 2*       |   `host02`   | 192.168.13.113  |
+|       *Host machine 3*       |   `host03`   | 192.168.13.115  |
+| SmartNIC of *Host machine 1* | `host01-nic` | 192.168.13.112  |
+| SmartNIC of *Host machine 2* | `host02-nic` | 192.168.13.114  |
+| SmartNIC of *Host machine 3* | `host03-nic` | 192.168.13.116  |
 
 We want to make LineFS have a replication chain as below.
 
 - *Host machine 1* --> *Host machine 2* --> *Host machine 3*
 
-### 8.2. Run kernel workers on host machines
+### 8.2. Setup I/OAT device
+
+The command should be executed on each host machine.
+
+```shell
+make spdk-init
+```
+
+You only need to run it once after reboot.
+
+### 8.3. Run kernel workers on host machines
 
 The following script runs *kernel worker*.
 
@@ -226,11 +237,12 @@ The following script runs *kernel worker*.
 scripts/run_kernfs.sh
 ```
 
-We need to execute this script on all three host machines. After running the script, *kernel workers* wait for SmartNICs to connect.
+You have to execute this script on all three host machines. After running the script, *kernel workers* wait for SmartNICs to connect.
 
-### 8.3. Run NICFS on SmartNIC
+### 8.4. Run NICFS on SmartNIC
 
-We need to execute this script on all three SmartNICs. Run them in the reverse order in which they are defined as `hot_replicas` at `libfs/src/distributed/rpc_interface.h`. For example, if they are defined as below,
+Execute the same script, `scripts/run_kernfs.sh`, on all three SmartNICs. Run them in the reverse order of the replication chain. The replication chain is defined as `hot_replicas` at `libfs/src/distributed/rpc_interface.h`. For example, if they are defined as below,
+
 ```c
 static struct peer_id hot_replicas[g_n_hot_rep] = {
     { .ip = "192.168.13.114", .role = HOT_REPLICA, .type = KERNFS_NIC_PEER},  // SmartNIC on host machine 1
@@ -241,42 +253,118 @@ static struct peer_id hot_replicas[g_n_hot_rep] = {
     { .ip = "192.168.13.115", .role = HOT_REPLICA, .type = KERNFS_PEER}       // Host machine 3
 }
 ```
+
 then run `mkfs_run_kernfs.sh` in `host03-nic` --> `host02-nic` --> `host01-nic` order. You have to wait that the previous SmartNIC finishes establishing its connections.
 
+#### 8.4.1. Make NICFSes sleep for different durations
 
-### 8.4. Run applications
+It is convenient to make the script wait for a while before running NICFS.
+Write local scripts to sleep before executing NICFS. `../local_scripts/sleep.sh` (outside of the project directory) will be executed before running NICFS (`run_kernfs.sh`) and `../local_scripts/sleep_mkfs.sh` will be executed before formatting device (`make mkfs`). Make sure that a soft link to the `../local_scripts` directory exists at the project root directory.
+
+Create `sleep.sh` and `sleep_mkfs.sh` files:
+
+```shell
+# At project root directory.
+
+mkdir ../local_scripts
+cat << EOT >> ../local_scripts/sleep.sh
+#!/bin/bash
+sleep 10
+EOT
+chmod +x ../local_scripts/sleep.sh
+
+cat << EOT >> ../local_scripts/sleep_mkfs.sh
+#!/bin/bash
+sleep 32
+EOT
+chmod +x ../local_scripts/sleep_mkfs.sh
+```
+
+Adjust sleep time properly. For example, if both log area and public area are 19 GB then `../local_scripts/sleep.sh` files in each machine would be:
+
+```shell
+# Primary NIC
+#!/bin/bash
+sleep 20
+```
+
+```shell
+# Replica 1 NIC
+#!/bin/bash
+sleep 10
+```
+
+```shell
+# Replica 2 NIC
+#!/bin/bash
+# No sleep.
+```
+
+and `../local_scripts/sleep_mkfs.sh`  files would be:
+
+```shell
+# Primary NIC
+#!/bin/bash
+sleep 32 # 19 GB
+```
+
+```shell
+# Replica 1 NIC
+#!/bin/bash
+sleep 32 # 19 GB
+```
+
+```shell
+# Replica 2 NIC
+#!/bin/bash
+sleep 32 # 19 GB
+```
+
+If you increased a device size (`dev_size`) as mentioned at [Compile-time configurations](#52-compile-time-configurations), you have to increase sleep time also.
+
+### 8.5. Run applications
 
 We are going to run a simple test application, `iotest`.
-```
+
+```shell
 cd libfs/tests
 sudo ./run.sh iotest sw 1G 4K 1   # sequential write, 1GB file, 4KB i/o size, 1 thread
 ```
 
 ## 9. Run Assise
-To run Assise (run without NIC-offloading) rather than LineFS, change the flags in `libfs/Makefile` and `kernfs/Makefile`.
 
-Change lines of `libfs/Makefile` as below.
+To run Assise (DFS without NIC-offloading) rather than LineFS, you have to rebuild LibFS and SharedFS (KernFS).
 
-```Makefile
-...
-MLFS_FLAGS = $(COMMON_FLAGS)  # Disable NIC-offloading (hostonly)
-# MLFS_FLAGS = $(WITH_SNIC_FLAGS) # Enable NIC-offloading
-...
+```shell
+# At the project root directory,
+make kernfs-assise
+make libfs-assise
 ```
-
-Change lines of `kernfs/Makefile` as below.
-
-```Makefile
-...
-MLFS_FLAGS = $(COMMON_FLAGS) $(HOST_FLAGS)  # Disable NIC-offloading (hostonly)
-# MLFS_FLAGS = $(WITH_SNIC_HOST_FLAGS) 	# Enable NIC-offloading
-...
-```
-
-Rebuild the source code with the commands `make kernfs` and `make libfs` at the project root directory.
 
 You can use the same script, `scripts/run_kernfs.sh`, however, a SharedFS (KernFS) needs to wait for the next SharedFS in the replication chain to be ready.
 For example, run Replica 2's SharedFS -> wait for a while -> run Replica 1's SharedFS -> wait for a while --> run Primary's SharedFS.
+
+Note that, you have to set proper sleep time for each host as described at [Make NICFSes sleep for different durations](#841-make-nicfses-sleep-for-different-durations)
+
+An example of `../local_scripts/sleep.sh` files in each host machine:
+
+```shell
+# Primary.
+#!/bin/bash
+sleep 8
+```
+
+```shell
+# Replica 1
+#!/bin/bash
+sleep 4
+```
+
+```shell
+# Replica 2
+#!/bin/bash
+# No sleep.
+```
 
 ## 10. Running benchmarks
 

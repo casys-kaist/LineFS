@@ -3,7 +3,7 @@
 
 # basic.
 # export NET_INTERFACE_NAME="enp175s0f1"
-export X86_NET_INTERFACE_NAME="ens1f0"
+export X86_NET_INTERFACE_NAME="enp59s0f0"
 export ARM_NET_INTERFACE_NAME="enp3s0f0"
 export PORT_NUM="12345"
 export PERSIST_NVM=1
@@ -14,8 +14,8 @@ export DIGEST_THRESHOLD=30
 export DIGEST_OPT_FCONCURRENT=0
 export IOAT_MEMCPY_OFFLOAD=1
 export ASYNC_REPLICATION=0	# background log copy.
-export KERNFS_NUM_CORES=16 # The number of cores pinned for kernfs.
-export NUMA_NODE=1		# CPU core binding.
+# export KERNFS_NUM_CORES=16 # The number of cores pinned for kernfs. Deprecated.
+export NUMA_NODE=0		# CPU core binding.
 
 # nic-offload
 #export NIC_OFFLOAD=1 # Not used currently.
@@ -36,9 +36,10 @@ export BREAKDOWN_MP=0
 
 export THREAD_NUM_DIGEST=8 # Not used in NIC offloading.
 export THREAD_NUM_DIGEST_FCONCURRENT=8
-export THREAD_NUM_REP=2
+export THREAD_NUM_REP=4
+
 export THREAD_NUM_DIGEST_RDMA_MEMCPY=1
-export THREAD_NUM_DIGEST_HOST_MEMCPY=1 # host kernfs. max=8
+export THREAD_NUM_DIGEST_HOST_MEMCPY=8 # host kernfs. max=8
 export THREAD_NUM_LOG_PREFETCH=1 # From local NVM to NICFS in Primary.
 export THREAD_NUM_LOG_PREFETCH_REQ=1 # libfs.
 export THREAD_NUM_PREPARE_LOGHDRS=8

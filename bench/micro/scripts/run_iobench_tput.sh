@@ -24,7 +24,7 @@ TOTAL_FILE_SIZE="12288" # 12G
 # FSIZE="1024" # in MB.
 # IOSIZES="1M 64K 16K 4K 1K"
 IOSIZES="16K"
-ROUNDS=3
+ROUNDS=1
 TYPE="hostonly"
 ACTION="run"
 CPU="solo"
@@ -51,12 +51,12 @@ exe_proc() {
     ### Use private directories. If Lease is disabled, we need to run libfs/tests/mkdir_test first.
     #
     ## Normal priority
-    # echo "sudo FILE_ID=$id $PINNING ./run.sh ./${run_bin} -d /mlfs/$id -s -w $op $(($TOTAL_FILE_SIZE/$proc_num))M $iosize 1 > $out_file_path"
-    # sudo FILE_ID=$id $PINNING ./run.sh ./${run_bin} -d /mlfs/$id -s -w $op $(($TOTAL_FILE_SIZE/$proc_num))M $iosize 1 > $out_file_path &
+    echo "sudo FILE_ID=$id $PINNING ./run.sh ./${run_bin} -d /mlfs/$id -s -w $op $(($TOTAL_FILE_SIZE/$proc_num))M $iosize 1 > $out_file_path"
+    sudo FILE_ID=$id $PINNING ./run.sh ./${run_bin} -d /mlfs/$id -s -w $op $(($TOTAL_FILE_SIZE/$proc_num))M $iosize 1 > $out_file_path &
     #
     ## Higher priority.
-    echo "sudo FILE_ID=$id nice -n -20 $PINNING ./run.sh ./${run_bin} -d /mlfs/$id -s -w $op $(($TOTAL_FILE_SIZE / $proc_num))M $iosize 1 > $out_file_path"
-    sudo FILE_ID=$id nice -n -20 $PINNING ./run.sh ./${run_bin} -d /mlfs/$id -s -w $op $(($TOTAL_FILE_SIZE / $proc_num))M $iosize 1 >$out_file_path &
+    # echo "sudo FILE_ID=$id nice -n -20 $PINNING ./run.sh ./${run_bin} -d /mlfs/$id -s -w $op $(($TOTAL_FILE_SIZE / $proc_num))M $iosize 1 > $out_file_path"
+    # sudo FILE_ID=$id nice -n -20 $PINNING ./run.sh ./${run_bin} -d /mlfs/$id -s -w $op $(($TOTAL_FILE_SIZE / $proc_num))M $iosize 1 >$out_file_path &
 }
 
 exe_all_procs() {

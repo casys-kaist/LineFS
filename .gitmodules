@@ -19,9 +19,6 @@
 [submodule "bench/minutesort"]
 	path = bench/minutesort
 	url = git@github.com:casys-kaist-internal/minutesort-at-assise-artifact.git
-[submodule "libfs/lib/rdma-core"]
-	path = libfs/lib/rdma-core
-	url = https://github.com/linux-rdma/rdma-core.git
 [submodule "utils/stop-machine"]
 	path = utils/stop-machine
 	url = https://github.com/satoru-takeuchi/stop-machine.git

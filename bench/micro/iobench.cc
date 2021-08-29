@@ -924,7 +924,7 @@ int main(int argc, char *argv[])
                 usleep(100);
             }
 	    // Delay start time.
-	    usleep(1000*10*dev_id);
+	//     usleep(1000*10*dev_id);
         }
 
 	printf("Starting benchmark ...\n");

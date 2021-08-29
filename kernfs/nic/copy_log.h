@@ -94,6 +94,10 @@ static void send_copy_done_ack_to_last_replica(int libfs_id, uint64_t seqn,
 					       uint64_t orig_log_size,
 					       int fsync, int sockfd);
 static void manage_fsync_ack (void *arg);
+static void send_fsync_ack(int libfs_id, uintptr_t fsync_ack_addr);
+static bool
+all_previous_log_persisted_bits_set(struct replication_context *rctx,
+				    uint64_t fsync_seqn);
 
 static void print_copy_to_local_nvm_arg(copy_to_local_nvm_arg *ar);
 static void print_copy_to_last_replica_arg(copy_to_last_replica_arg *ar);

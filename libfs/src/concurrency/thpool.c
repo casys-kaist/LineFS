@@ -119,14 +119,16 @@ static void  thread_destroy(struct thread* thread_p);
 
 static int   jobqueue_init(jobqueue* jobqueue_p);
 static void  jobqueue_clear(jobqueue* jobqueue_p);
-static void  jobqueue_push(jobqueue* jobqueue_p, struct job* newjob_p);
-static struct job* jobqueue_pull(jobqueue* jobqueue_p);
+static void  jobqueue_push(jobqueue* jobqueue_p, struct job* newjob_p, int no_sleep);
+static struct job* jobqueue_pull(jobqueue* jobqueue_p, int no_sleep);
 static void  jobqueue_destroy(jobqueue* jobqueue_p);
 
 static void  bsem_init(struct bsem *bsem_p, int value);
 static void  bsem_reset(struct bsem *bsem_p);
 static void  bsem_post(struct bsem *bsem_p);
+static void  bsem_post_no_sleep(struct bsem *bsem_p);
 static void  bsem_post_all(struct bsem *bsem_p);
+static void  bsem_post_all_no_sleep(struct bsem *bsem_p);
 static void  bsem_wait(struct bsem *bsem_p);
 static void  bsem_wait_no_sleep(struct bsem *bsem_p);
 
@@ -135,6 +137,16 @@ static void  bsem_wait_no_sleep(struct bsem *bsem_p);
 //                                              void (*stat_print_func_p)(void*));
 
 
+TL_EVENT_TIMER(evt_thpool_add_work);
+TL_EVENT_TIMER(evt_thpool_add_work_malloc);
+TL_EVENT_TIMER(evt_thpool_add_work_push_job);
+TL_EVENT_TIMER(evt_jobqueue_push_acquire_lock);
+TL_EVENT_TIMER(evt_jobqueue_push_add);
+TL_EVENT_TIMER(evt_jobqueue_push_bsem_post);
+// TL_EVENT_TIMER(evt_jobqueue_pull_bsem_post);
+TL_EVENT_TIMER(evt_bsem_post_acquire_lock);
+TL_EVENT_TIMER(evt_bsem_post_cond_signal);
+TL_EVENT_TIMER(evt_bsem_post_no_sleep_set_bit);
 
 
 /* ========================== THREADPOOL ============================ */
@@ -287,9 +299,14 @@ struct thpool_* thpool_init_no_sleep(int num_threads, const char *thpool_name){
 
 /* Add work to the thread pool */
 int thpool_add_work(thpool_* thpool_p, void (*function_p)(void*), void* arg_p){
+	START_TL_TIMER(evt_thpool_add_work);
+
 	job* newjob;
 
+	START_TL_TIMER(evt_thpool_add_work_malloc);
 	newjob=(struct job*)malloc(sizeof(struct job));
+	END_TL_TIMER(evt_thpool_add_work_malloc);
+
 	if (newjob==NULL){
 		panic("thpool_add_work(): Could not allocate memory for new job\n");
 		// err("thpool_add_work(): Could not allocate memory for new job\n");
@@ -306,7 +323,10 @@ int thpool_add_work(thpool_* thpool_p, void (*function_p)(void*), void* arg_p){
 #endif
 
 	/* add job to queue */
-	jobqueue_push(&thpool_p->jobqueue, newjob);
+	START_TL_TIMER(evt_thpool_add_work_push_job);
+	jobqueue_push(&thpool_p->jobqueue, newjob, thpool_p->no_sleep);
+	END_TL_TIMER(evt_thpool_add_work_push_job);
+
 #ifdef PROFILE_JOBQUEUE_LEN
 	if (thpool_p->jobqueue.len > 1000) {
 		int temp_len_100 = (thpool_p->jobqueue.len/100) * 100;
@@ -322,6 +342,7 @@ int thpool_add_work(thpool_* thpool_p, void (*function_p)(void*), void* arg_p){
 	}
 #endif
 
+	END_TL_TIMER(evt_thpool_add_work);
 	return 0;
 }
 
@@ -352,14 +373,20 @@ void thpool_destroy(thpool_* thpool_p){
 	double tpassed = 0.0;
 	time (&start);
 	while (tpassed < TIMEOUT && thpool_p->num_threads_alive){
-		bsem_post_all(thpool_p->jobqueue.has_jobs);
+		if (thpool_p->no_sleep)
+			bsem_post_all_no_sleep(thpool_p->jobqueue.has_jobs);
+		else
+			bsem_post_all(thpool_p->jobqueue.has_jobs);
 		time (&end);
 		tpassed = difftime(end,start);
 	}
 
 	/* Poll remaining threads */
 	while (thpool_p->num_threads_alive){
-		bsem_post_all(thpool_p->jobqueue.has_jobs);
+		if (thpool_p->no_sleep)
+			bsem_post_all_no_sleep(thpool_p->jobqueue.has_jobs);
+		else
+			bsem_post_all(thpool_p->jobqueue.has_jobs);
 		sleep(1);
 	}
 
@@ -436,6 +463,21 @@ void print_profile_result(thpool_ *thpool_p)
 		// printf("Total scheduled cnt: %lu\n", cnt);
 		// printf("----------------------------------------------\n");
 	}
+}
+
+void print_thpool_stat(void *arg)
+{
+	printf("Thread_id: %ld\n", get_tid());
+	PRINT_TL_TIMER(evt_thpool_add_work, arg);
+	PRINT_TL_TIMER(evt_thpool_add_work_malloc, arg);
+	PRINT_TL_TIMER(evt_thpool_add_work_push_job, arg);
+	PRINT_TL_TIMER(evt_jobqueue_push_acquire_lock, arg);
+	PRINT_TL_TIMER(evt_jobqueue_push_add, arg);
+	PRINT_TL_TIMER(evt_jobqueue_push_bsem_post, arg);
+	// PRINT_TL_TIMER(evt_jobqueue_pull_bsem_post, arg);
+	PRINT_TL_TIMER(evt_bsem_post_acquire_lock, arg);
+	PRINT_TL_TIMER(evt_bsem_post_cond_signal, arg);
+	PRINT_TL_TIMER(evt_bsem_post_no_sleep_set_bit, arg);
 }
 
 #endif
@@ -597,7 +639,7 @@ static void* thread_do(struct thread* thread_p){
 			/* Read job from queue and execute it */
 			void (*func_buff)(void*);
 			void*  arg_buff;
-			job* job_p = jobqueue_pull(&thpool_p->jobqueue);
+			job* job_p = jobqueue_pull(&thpool_p->jobqueue, thpool_p->no_sleep);
 			if (job_p) {
 #ifdef PROFILE_THPOOL
 				// Check scheduled time.
@@ -670,7 +712,7 @@ static int jobqueue_init(jobqueue* jobqueue_p){
 static void jobqueue_clear(jobqueue* jobqueue_p){
 
 	while(jobqueue_p->len){
-		free(jobqueue_pull(jobqueue_p));
+		free(jobqueue_pull(jobqueue_p, 0));
 	}
 
 	jobqueue_p->front = NULL;
@@ -683,9 +725,12 @@ static void jobqueue_clear(jobqueue* jobqueue_p){
 
 /* Add (allocated) job to queue
  */
-static void jobqueue_push(jobqueue* jobqueue_p, struct job* newjob){
+static void jobqueue_push(jobqueue* jobqueue_p, struct job* newjob, int no_sleep){
 
+	START_TL_TIMER(evt_jobqueue_push_acquire_lock);
 	pthread_mutex_lock(&jobqueue_p->rwmutex);
+	END_TL_TIMER(evt_jobqueue_push_acquire_lock);
+	START_TL_TIMER(evt_jobqueue_push_add);
 	newjob->prev = NULL;
 
 	switch(jobqueue_p->len){
@@ -702,7 +747,19 @@ static void jobqueue_push(jobqueue* jobqueue_p, struct job* newjob){
 	}
 	jobqueue_p->len++;
 
-	bsem_post(jobqueue_p->has_jobs);
+	if (jobqueue_p->len > 10000) {
+		printf("%lu WARN More than 1000 jobs in jobqueue. jobqueue "
+		       "length=%d\n",
+		       get_tid(), jobqueue_p->len);
+	}
+
+	END_TL_TIMER(evt_jobqueue_push_add);
+	START_TL_TIMER(evt_jobqueue_push_bsem_post);
+	if (no_sleep)
+		bsem_post_no_sleep(jobqueue_p->has_jobs);
+	else
+		bsem_post(jobqueue_p->has_jobs);
+	END_TL_TIMER(evt_jobqueue_push_bsem_post);
 	pthread_mutex_unlock(&jobqueue_p->rwmutex);
 }
 
@@ -711,7 +768,7 @@ static void jobqueue_push(jobqueue* jobqueue_p, struct job* newjob){
  *
  * Notice: Caller MUST hold a mutex
  */
-static struct job* jobqueue_pull(jobqueue* jobqueue_p){
+static struct job* jobqueue_pull(jobqueue* jobqueue_p, int no_sleep){
 
 	pthread_mutex_lock(&jobqueue_p->rwmutex);
 	job* job_p = jobqueue_p->front;
@@ -731,7 +788,13 @@ static struct job* jobqueue_pull(jobqueue* jobqueue_p){
 					jobqueue_p->front = job_p->prev;
 					jobqueue_p->len--;
 					/* more than one job in queue -> post it */
-					bsem_post(jobqueue_p->has_jobs);
+					// START_TL_TIMER(evt_jobqueue_pull_bsem_post);
+					if (no_sleep)
+						bsem_post_no_sleep(
+							jobqueue_p->has_jobs);
+					else
+						bsem_post(jobqueue_p->has_jobs);
+					// END_TL_TIMER(evt_jobqueue_pull_bsem_post);
 
 	}
 
@@ -773,12 +836,21 @@ static void bsem_reset(bsem *bsem_p) {
 
 /* Post to at least one thread */
 static void bsem_post(bsem *bsem_p) {
+	START_TL_TIMER(evt_bsem_post_acquire_lock);
 	pthread_mutex_lock(&bsem_p->mutex);
+	END_TL_TIMER(evt_bsem_post_acquire_lock);
 	bsem_p->v = 1;
+	START_TL_TIMER(evt_bsem_post_cond_signal);
 	pthread_cond_signal(&bsem_p->cond);
+	END_TL_TIMER(evt_bsem_post_cond_signal);
 	pthread_mutex_unlock(&bsem_p->mutex);
 }
 
+static void bsem_post_no_sleep(bsem *bsem_p) {
+	START_TL_TIMER(evt_bsem_post_no_sleep_set_bit);
+	atomic_set_bit(&bsem_p->v, 1);
+	END_TL_TIMER(evt_bsem_post_no_sleep_set_bit);
+}
 
 /* Post to all threads */
 static void bsem_post_all(bsem *bsem_p) {
@@ -788,6 +860,9 @@ static void bsem_post_all(bsem *bsem_p) {
 	pthread_mutex_unlock(&bsem_p->mutex);
 }
 
+static void bsem_post_all_no_sleep(bsem *bsem_p) {
+	atomic_set_bit(&bsem_p->v, 1);
+}
 
 /* Wait on semaphore until semaphore has value 0 */
 static void bsem_wait(bsem* bsem_p) {
@@ -802,13 +877,8 @@ static void bsem_wait(bsem* bsem_p) {
 /* Wait on semaphore until semaphore has value 0 */
 static void bsem_wait_no_sleep(bsem* bsem_p) {
 	while (1) {
-		pthread_mutex_lock(&bsem_p->mutex);
-		if (bsem_p->v == 1) {
-		    bsem_p->v = 0;
-		    pthread_mutex_unlock(&bsem_p->mutex);
-		    break;
-		}
-		pthread_mutex_unlock(&bsem_p->mutex);
+		if (cmpxchg(&bsem_p->v, 1, 0))
+			break;
 		cpu_relax();
 	}
 }

@@ -189,7 +189,11 @@ int add_connection(char* ip, char *port, int app_type, int polling_loop, int soc
 	if(!rdma_initialized)
 		rc_die("can't add connection; client must be initialized first\n");
 
-	getaddrinfo(ip, port, NULL, &addr);
+	ret = getaddrinfo(ip, port, NULL, &addr);
+	if (ret != 0) {
+		printf("getaddrinfo() returned %d\n", ret);
+		rc_die("can't get addr info.\n");
+	}
 
 	if (low_lat) {
 	    rdma_create_id(g_ec_low_lat, &cm_id, NULL, RDMA_PS_TCP);

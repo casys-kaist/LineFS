@@ -1,5 +1,6 @@
 #include "mlfs/mlfs_user.h"
 #include "pipeline_common.h"
+#include "global/util.h"
 
 host_heartbeat_t g_host_heartbeat = {0};
 uint64_t *true_bit = 0;

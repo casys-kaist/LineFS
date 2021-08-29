@@ -6,7 +6,7 @@ SYS=$(gcc -dumpmachine)
 if [ $SYS = "aarch64-linux-gnu" ]; then
 	PINNING="" # There is only one socket in the SmartNIC.
 else
-	PINNING="numactl -N1 -m1"
+	PINNING="numactl -N0 -m0"
 fi
 
 HOST_1="libra06"
@@ -16,3 +16,17 @@ HOST_3="libra09"
 NIC_1="libra06-nic-rdma"
 NIC_2="libra08-nic-rdma"
 NIC_3="libra09-nic-rdma"
+
+buildAssise() {
+	(
+		cd "$PROJ_DIR" || exit
+		make kernfs-assise && make libfs-assise || exit 1
+	)
+}
+
+buildLineFS() {
+	(
+		cd "$PROJ_DIR" || exit
+		make kernfs-linefs && make libfs-linefs || exit 1
+	)
+}

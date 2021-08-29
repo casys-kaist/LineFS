@@ -7,6 +7,9 @@
 SYS ?= $(shell gcc -dumpmachine)
 export SYS
 
+### Select distributed file system. 'assise' or 'linefs'
+DFS = linefs
+
 ####### Flags ##################################################################
 ### Print Flags
 PRINT_FLAGS += -DPRINT_COLOR	# enable color scheme.
@@ -52,13 +55,15 @@ WITH_SNIC_FLAGS += -DLIMIT_PREFETCH 	  # Not working correctly if THREAD_NUM_LOG
 WITH_SNIC_FLAGS += -DPIPELINE_RATE_LIMIT  # Not working correctly if THREAD_NUM_LOG_PREFETCH is greater than 1.
 WITH_SNIC_FLAGS += -DBATCH_MEMCPY_LIST
 
-###############################################################################
-#  Uncomment one of the followings.                                           #
-###############################################################################
-# MLFS_FLAGS = $(COMMON_FLAGS)  # Disable NIC-offloading (hostonly)
+ifeq (,$(filter $(DFS), assise))
+# LineFS
 MLFS_FLAGS = $(WITH_SNIC_FLAGS) # Enable NIC-offloading
-###############################################################################
+else
+# Assise
+MLFS_FLAGS = $(COMMON_FLAGS)  # Disable NIC-offloading (hostonly)
+endif
 
+### Debug options.
 # DEBUG = -g3 -O0
 #DEBUG = -O0 -gdwarf-2 -g3 -rdynamic
 # DEBUG = -g -O2

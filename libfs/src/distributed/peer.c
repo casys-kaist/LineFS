@@ -26,6 +26,8 @@ struct peer_socket *g_rpc_socks[sock_bitmap_size];
 struct peer_socket *g_rpc_socks[sock_bitmap_size];
 #endif
 
+struct fetch_seqn g_fetch_seqn; // Used by LibFS.
+
 struct peer_id *g_kernfs_peers[g_n_nodes];
 struct peer_id *g_peers[peer_bitmap_size];
 int g_peer_count = 0;
@@ -37,6 +39,13 @@ pthread_mutex_t peer_bitmap_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 static void print_bits(unsigned int x);
 
+#ifdef LIBFS
+void init_fetch_seqn() {
+	g_fetch_seqn.n = 0;
+	pthread_spin_init(&g_fetch_seqn.fetch_seqn_lock, PTHREAD_PROCESS_SHARED);
+}
+#endif
+
 void peer_init()
 {
 	bitmap_zero(peer_bitmap, peer_bitmap_size);
@@ -46,6 +55,10 @@ void peer_init()
 	//peer_bitmap_mutex = (pthread_mutex_t *)mlfs_zalloc(sizeof(pthread_mutex_t));
 	//pthread_mutexattr_init(&attr);
 	//pthread_mutex_init(peer_bitmap_mutex, NULL);
+#ifdef LIBFS
+	printf("INIT fetch seqn to 0\n");
+	init_fetch_seqn();
+#endif
 }
 
 void lock_peer_access()
@@ -120,8 +133,6 @@ void add_peer_socket(int sockfd, int sock_type)
 	psock->fd = peer->sockfd[sock_type];
 	psock->seqn = 0;
         pthread_spin_init(&psock->seqn_lock, PTHREAD_PROCESS_SHARED);
-	psock->fetch_seqn = 0;
-        pthread_spin_init(&psock->fetch_seqn_lock, PTHREAD_PROCESS_SHARED);
 	psock->type = sock_type;
 	psock->peer = peer;
 	g_rpc_socks[peer->sockfd[sock_type]] = psock;

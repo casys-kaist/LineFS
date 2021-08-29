@@ -258,7 +258,7 @@ static void end_pipeline(void *arg)
 	print_pipeline_end_arg(pe_arg);
 
 	// Update primary's seqn_completed_in_next_replica.
-	// Currently, feecback is only between replica 1 and primary because
+	// Currently, feedback is only between replica 1 and primary because
 	// replica 1 is bottleneck.
 //	if (is_middle_in_rep_chain(pe_arg->libfs_id, g_kernfs_id))
 //		update_complete_seqn(pe_arg->libfs_id, pe_arg->seqn,

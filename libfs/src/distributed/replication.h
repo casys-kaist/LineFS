@@ -15,7 +15,7 @@
 #ifdef NIC_SIDE
 #define N_RSYNC_THREADS 1
 #else
-#define N_RSYNC_THREADS 1   // TODO JYKIM Need to increase it? (it was 5 before)
+#define N_RSYNC_THREADS 3   // TODO JYKIM Need to increase it? (it was 5 before)
 #endif
 
 #ifdef KERNFS

@@ -1,4 +1,4 @@
-#ifdef __aarch64__
+// #ifdef __aarch64__ // Comment out for development.
 #include <sys/epoll.h>
 #include <sys/stat.h>
 #include <sys/mman.h>
@@ -130,6 +130,7 @@ void print_all_fsync_stat(void *arg) {
 	print_copy_to_last_replica_stat((void*)99);
 	print_free_log_buf_stat((void*)99);
 	print_handle_copy_done_ack_stat((void*)99);
+	print_thpool_stat((void*)99);
 #endif
 }
 
@@ -1636,15 +1637,9 @@ fetch_log : {
 			fetch_log_from_primary_nic_dram_bg,
 			(void *)fl_arg);
 #else
-	if (fl_arg->fsync) {
-		thpool_add_work(thread_pool_fsync,
-				fetch_log_from_primary_nic_dram_bg,
-				(void *)fl_arg);
-	} else {
-		thpool_add_work(thread_pool_log_fetch,
-				fetch_log_from_primary_nic_dram_bg,
-				(void *)fl_arg);
-	}
+	thpool_add_work(thread_pool_log_fetch,
+			fetch_log_from_primary_nic_dram_bg, (void *)fl_arg);
+	mlfs_assert(!fl_arg->fsync);	// On fsync, msg is sent via low-lat channel.
 #endif
 	goto ret;
 }
@@ -1670,6 +1665,9 @@ log_prefetch : {
 	// Prefetch log in background.
 	thpool_add_work(thread_pool_log_prefetch, fetch_log_from_local_nvm_bg,
 			(void *)lf_arg);
+
+	// mlfs_assert(!lf_arg->fsync);	// On fsync, msg is sent via low-lat channel.
+
 	goto ret;
 }
 
@@ -1787,13 +1785,59 @@ void low_lat_signal_callback(struct app_context *msg)
 	}
 
 	// if (cmd_hdr[0] == 'r') {
-	if (0) {
+	if (cmd_hdr[0] == 'f') {
+		if (cmd_hdr[1] == 'l')
+			goto fetch_log; // fl : RPC_FETCH_LOG
+
+	} else if (cmd_hdr[0] == 'l') {
+		if (cmd_hdr[1] == 'p') // lp : RPC_LOG_PREFETCH
+			goto log_prefetch;
+
 	} else {
 		mlfs_printf("(low_lat) RECV: %s\n", msg->data);
 		panic("Unidentified remote signal\n");
 	}
 
 	goto ret;
+
+fetch_log : {
+	log_fetch_from_nic_arg *fl_arg =
+		mlfs_zalloc(sizeof(log_fetch_from_nic_arg));
+	sscanf(msg->data, "|%s |%d|%lu|%lu|%lu|%lu|%lu|%lu|%d|%lu", cmd_hdr,
+	       &fl_arg->libfs_id, &fl_arg->seqn, &fl_arg->remote_log_buf_addr,
+	       &fl_arg->log_size, &fl_arg->orig_log_size, &fl_arg->start_blknr,
+	       &fl_arg->fetch_log_done_addr, &fl_arg->fsync,
+	       &fl_arg->fsync_ack_addr);
+
+#ifdef NO_PIPELINING
+	thpool_add_work(thread_pool_log_fetch,
+			fetch_log_from_primary_nic_dram_bg,
+			(void *)fl_arg);
+#else
+	thpool_add_work(thread_pool_fsync, fetch_log_from_primary_nic_dram_bg,
+			(void *)fl_arg);
+
+	mlfs_assert(fl_arg->fsync); // Low-lat channel is used only on fsync.
+#endif
+	goto ret;
+}
+
+log_prefetch : {
+	log_fetch_from_local_nvm_arg *lf_arg =
+		mlfs_zalloc(sizeof(log_fetch_from_local_nvm_arg));
+
+	sscanf(msg->data, "|%s |%d|%lu|%lu|%u|%lu|%lu|%d|%d|%lu", cmd_hdr,
+	       &lf_arg->libfs_id, &lf_arg->seqn, &lf_arg->prefetch_start_blknr,
+	       &lf_arg->n_to_prefetch_loghdr, &lf_arg->n_to_prefetch_blk,
+	       &lf_arg->libfs_base_addr, &lf_arg->reset_meta, &lf_arg->fsync,
+	       &lf_arg->fsync_ack_addr);
+
+	thpool_add_work(thread_pool_fsync, fetch_log_from_local_nvm_bg,
+			(void *)lf_arg);
+	// mlfs_assert(lf_arg->fsync); // Low-lat channel is used only on fsync.
+	goto ret;
+}
+
 
 ret : { // goto is used to measure time spent in this function.
 	// END_TIMER(evt_k_signal_callback);
@@ -1938,4 +1982,4 @@ void read_superblock(uint8_t dev)
 static void handle_heartbeat(void *arg) {
 	update_host_heartbeat((uint64_t)arg);
 }
-#endif /* __aarch64__ */
+// #endif /* __aarch64__ */
