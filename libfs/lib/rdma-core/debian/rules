@@ -1,0 +1,87 @@
+#!/usr/bin/make -f
+
+include /usr/share/dpkg/architecture.mk
+
+export DEB_BUILD_MAINT_OPTIONS=hardening=+all
+
+COHERENT_DMA_ARCHS = amd64 arm64 i386 ia64 powerpc powerpcspe ppc64 ppc64el s390x sparc64 x32
+
+%:
+	dh $@ --with systemd --builddirectory=build-deb
+
+override_dh_auto_clean:
+	dh_auto_clean
+	rm -rf build-deb
+	for package in ibverbs-providers libibverbs-dev rdma-core; do \
+		test ! -e debian/$$package.install.backup || mv debian/$$package.install.backup debian/$$package.install; \
+	done
+
+# Upstream wishes to use CMAKE_BUILD_TYPE=Release, and ensures that has a
+# sensible basis of options (eg no -O3, including -g). Debian specific options
+# come from CFLAGS as usual.
+#
+# Upstream encourages the use of Ninja to build the source, convince dh to use
+# it until someone writes native support for dh+cmake+ninja.
+override_dh_auto_configure:
+	dh_auto_configure -- -GNinja \
+			-DDISTRO_FLAVOUR=Debian \
+			-DCMAKE_BUILD_TYPE=Release \
+			-DCMAKE_INSTALL_SYSCONFDIR:PATH=/etc \
+			-DCMAKE_INSTALL_SYSTEMD_SERVICEDIR:PATH=/lib/systemd/system \
+			-DCMAKE_INSTALL_INITDDIR:PATH=/etc/init.d \
+			-DCMAKE_INSTALL_LIBEXECDIR:PATH=/usr/lib \
+			-DCMAKE_INSTALL_SHAREDSTATEDIR:PATH=/var/lib \
+			-DCMAKE_INSTALL_RUNDIR:PATH=/run \
+			-DCMAKE_INSTALL_UDEV_RULESDIR:PATH=/lib/udev/rules.d \
+			$(EXTRA_CMAKE_FLAGS)
+
+override_dh_auto_build:
+	ninja -C build-deb -v
+
+# upstream does not ship test cases
+override_dh_auto_test:
+
+override_dh_auto_install:
+# Some providers are disabled on architectures that are not able to do coherent DMA
+ifneq (,$(filter-out $(COHERENT_DMA_ARCHS),$(DEB_HOST_ARCH)))
+	for package in ibverbs-providers libibverbs-dev rdma-core; do \
+		test -e debian/$$package.install.backup || cp debian/$$package.install debian/$$package.install.backup; \
+	done
+	sed -i '/mlx[45]/d' debian/ibverbs-providers.install debian/libibverbs-dev.install debian/rdma-core.install
+endif
+	DESTDIR=$(CURDIR)/debian/tmp ninja -C build-deb install
+
+# The following files are not used on Debian (we ship our own sysvinit script)
+INST_EXCLUDE := "etc/init.d/srpd" \
+		"usr/sbin/run_srp_daemon" \
+		"usr/sbin/srp_daemon.sh"
+INST_EXCLUDE := $(addprefix -X,$(INST_EXCLUDE))
+override_dh_install:
+	dh_install --fail-missing $(INST_EXCLUDE)
+
+# cmake installs the correct init scripts in the correct place, just setup the
+# pre-postrms
+override_dh_installinit:
+	dh_installinit -pibacm --onlyscripts
+	dh_installinit -prdma-core --onlyscripts --name=iwpmd
+	dh_installinit --remaining-packages
+
+# Provider plugin libaries are not shared libraries and do not belong in the
+# shlibs file.
+# librspreload is a LD_PRELOAD library and does not belong in the shlib files
+SHLIBS_EXCLUDE = "/libibverbs/" "librspreload" "/ibacm/"
+SHLIBS_EXCLUDE := $(addprefix --exclude=,$(SHLIBS_EXCLUDE))
+override_dh_makeshlibs:
+	dh_makeshlibs $(SHLIBS_EXCLUDE)
+
+override_dh_strip:
+	dh_strip -plibibumad3 --dbg-package=libibumad3-dbg
+	dh_strip -plibibverbs1 --dbg-package=libibverbs1-dbg
+	dh_strip -plibrdmacm1 --dbg-package=librdmacm1-dbg
+	dh_strip --remaining-packages
+
+# Upstream encourages the use of 'build' as the developer build output
+# directory, allow that directory to be present and still allow dh to work.
+.PHONY: build
+build:
+	dh $@ --with systemd --builddirectory=build-deb
