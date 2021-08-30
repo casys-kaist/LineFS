@@ -104,7 +104,6 @@ $ ls /dev/dax*
 ```shell
 git clone git@github.com:casys-kaist/LineFS.git
 cd LineFS
-git submodule update --init --recursive
 ```
 
 ## 5. Configuring LineFS

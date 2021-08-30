@@ -17,7 +17,7 @@ redownload:
 	########
 	@rm -rf spdk
 	git clone https://github.com/spdk/spdk.git
-	(cd spdk; git submodule update --init)
+	(cd spdk; git checkout v21.07; git submodule update --init)
 
 clean:
 	make clean -C spdk
