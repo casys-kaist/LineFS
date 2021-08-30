@@ -31,7 +31,8 @@
 - [9. Run Assise](#9-run-assise)
 - [10. Running benchmarks](#10-running-benchmarks)
 
-If you are using our testbed for SOSP 2021 Artifact Evaluation, please read [README for Artifact Evaluation Reviewers]() first. It is provided on the HotCRP submission page. After reading it, you can directly go on to [Configuring LineFS](#5-configuring-linefs).
+> If you are using our testbed for SOSP 2021 Artifact Evaluation, please read [README for Artifact Evaluation Reviewers]() first. It is provided on the HotCRP submission page.  
+***After reading it, you can directly go on to [Configuring LineFS](#5-configuring-linefs).***
 
 ## 1. System requirements (Tested environment)
 
@@ -69,7 +70,6 @@ If you are using our testbed for SOSP 2021 Artifact Evaluation, please read [REA
 ```shell
 sudo apt install build-essential make pkg-config autoconf libnuma-dev libaio1 libaio-dev uuid-dev librdmacm-dev ndctl numactl libncurses-dev libssl-dev libelf-dev rsync
 ```
-
 
 ## 3. Hardware setup
 
@@ -139,7 +139,7 @@ Locations of compile-time configurations are as below.
 - Some constants like the private log size, the number of max LibFS processes are defined in `libfs/src/global/global.h`. You can leave it as a default.
 - IP addresses of machines and SmartNICs and the order of replication chain are defined as a variable `hot_replicas` in `libfs/src/distributed/rpc_interface.h`. You have to set correct values for this configuration.
 - A device size to be used by LineFS is defined as a variable `dev_size` in `libfs/src/storage/storage.h`. You can leave it as a default.
-- Paths of pmem devices should be defined in `storage.c` as below. `g_dev_path[1]` is the path of the device for the public area and `g_dev_path[4]` is for the log area. You have to set correct values for this configuration. Here is an example.
+- Paths of pmem devices should be defined in `libfs/src/storage/storage.c` as below. `g_dev_path[1]` is the path of the device for the public area and `g_dev_path[4]` is for the log area. You have to set correct values for this configuration. Here is an example.
 
   ```c
   char *g_dev_path[] = {
@@ -192,7 +192,7 @@ make kernfs-linefs      # Build `NICFS`
 
 ## 7. Formatting devices
 
-Run the following command at the project root directory.
+Run the following command at the project root directory. Run it only on the host machines. (There is no device on the SmartNIC.)
 
 ```shell
 make mkfs
@@ -240,7 +240,7 @@ You have to execute this script on all three host machines. After running the sc
 
 ### 8.4. Run NICFS on SmartNIC
 
-Execute the same script, `scripts/run_kernfs.sh`, on all three SmartNICs. Run them in the reverse order of the replication chain. The replication chain is defined as `hot_replicas` at `libfs/src/distributed/rpc_interface.h`. For example, if they are defined as below,
+Execute `scripts/run_kernfs.sh` on all three SmartNICs. Run them in the reverse order of the replication chain. The replication chain is defined as `hot_replicas` at `libfs/src/distributed/rpc_interface.h`. For example, if they are defined as below,
 
 ```c
 static struct peer_id hot_replicas[g_n_hot_rep] = {
@@ -253,13 +253,28 @@ static struct peer_id hot_replicas[g_n_hot_rep] = {
 }
 ```
 
-then run `mkfs_run_kernfs.sh` in `host03-nic` --> `host02-nic` --> `host01-nic` order. You have to wait that the previous SmartNIC finishes establishing its connections.
+run `scripts/run_kernfs.sh` in `host03-nic` --> `host02-nic` --> `host01-nic` order. You have to wait that the previous SmartNIC finishes establishing its connections.
 
 #### 8.4.1. Make NICFSes sleep for different durations
 
-It is convenient to make the script wait for a while before running NICFS.
-Write local scripts to sleep before executing NICFS. `../local_scripts/sleep.sh` (outside of the project directory) will be executed before running NICFS (`run_kernfs.sh`) and `../local_scripts/sleep_mkfs.sh` will be executed before formatting device (`make mkfs`). Make sure that a soft link to the `../local_scripts` directory exists at the project root directory.
+It is convenient to make the script wait for a while before running NICFS. Two files in the `../local_scripts` directory (outside of the project directory) make scripts sleep for a while. Set proper sleep time into those files and make sure that a soft link to the `../local_scripts` directory exists at the project root directory.
 
+1. `../local_scripts/sleep.sh`  
+  `scripts/run_kernfs.sh` and `scripts/mkfs_run_kernfs.sh` run this script before running NICFS.
+
+2. `../local_scripts/sleep_mkfs.sh`  
+   `scripts/mkfs_run_kernfs.sh` runs this script before running NICFS.
+
+Intended usage:
+
+- Execute the same scripts on all the host machines and NICs at the same time.
+- Use `run_kernfs.sh` if you dont' format host devices. Use `mkfs_run_kernfs.sh` if you format host device.
+
+Instead of `run_kernfs.sh`, you can run NICFS with `mkfs_run_kernfs.sh`. Although it doesn't format device - there is no device on SmartNIC -, it additionally sleeps for a duration designated by `../local_scripts/sleep_mkfs.sh`.
+
+> ***It is required to set `../local_scripts/sleep_mkfs.sh` up correctly because it is used by the other benchmark scripts.***
+
+Here is what you need to do.  
 Create `sleep.sh` and `sleep_mkfs.sh` files:
 
 ```shell
@@ -319,15 +334,15 @@ sleep 32 # 19 GB
 sleep 32 # 19 GB
 ```
 
-If you increased a device size (`dev_size`) as mentioned at [Compile-time configurations](#52-compile-time-configurations), you have to increase sleep time also.
+If you increased a device size (`dev_size`) as mentioned at [Compile-time configurations](#52-compile-time-configurations), you have to increase sleep time of `../local_scripts/sleep_mkfs.sh` also.
 
 ### 8.5. Run applications
 
-We are going to run a simple test application, `iotest`.
+We are going to run a simple test application, `iotest`. Note that, all the LineFS applications run on the Primary host CPU (`host01`).
 
 ```shell
 cd libfs/tests
-sudo ./run.sh iotest sw 1G 4K 1   # sequential write, 1GB file, 4KB i/o size, 1 thread
+sudo ./run.sh ./iotest sw 1G 4K 1   # sequential write, 1GB file, 4KB i/o size, 1 thread
 ```
 
 ## 9. Run Assise

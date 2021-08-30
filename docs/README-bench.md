@@ -15,6 +15,7 @@
 	- [5.3. Disable ASLR](#53-disable-aslr)
 	- [5.4. Run filebench](#54-run-filebench)
 	- [5.5. Known issues](#55-known-issues)
+- [6. Experiments to be added](#6-experiments-to-be-added)
 
 All the benchmarks run on Primary host machine unless otherwise specified.
 
@@ -227,3 +228,9 @@ You can select experiments to run by changing `bench/filebench/run_all.sh` scrip
     ```
 
   - Workaround: Exit the program (`sudo pkill -9 filebench`). It doesn't affect the experiment results.
+
+## 6. Experiments to be added
+
+- Performance interference experiment
+- Assise-opt
+- Diverse copying method experiment
