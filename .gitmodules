@@ -13,12 +13,12 @@
 [submodule "kernfs/lib/simple-lz4"]
 	path = kernfs/lib/simple-lz4
 	url = git@github.com:casys-kaist-internal/simple-lz4.git
-[submodule "kernfs/lib/ioat-dma-kernel-module"]
-	path = kernfs/lib/ioat-dma-kernel-module
-	url = git@github.com:casys-kaist-internal/Pipeline-ioat-dma-kernel-module.git
 [submodule "bench/minutesort"]
 	path = bench/minutesort
 	url = git@github.com:casys-kaist-internal/minutesort-at-assise-artifact.git
 [submodule "utils/stop-machine"]
 	path = utils/stop-machine
 	url = https://github.com/satoru-takeuchi/stop-machine.git
+[submodule "kernfs/lib/ioat-dma-kernel-module"]
+	path = kernfs/lib/ioat-dma-kernel-module
+	url = https://github.com/casys-kaist/LineFS-ioat-dma-kernel-module.git
