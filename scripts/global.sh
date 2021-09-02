@@ -17,16 +17,34 @@ NIC_1="libra06-nic-rdma"
 NIC_2="libra08-nic-rdma"
 NIC_3="libra09-nic-rdma"
 
+buildLineFS() {
+	echo "Building LineFS."
+	(
+		cd "$PROJ_DIR" || exit
+		make kernfs-linefs && make libfs-linefs || exit 1
+	)
+}
+
 buildAssise() {
+	echo "Building Assise."
 	(
 		cd "$PROJ_DIR" || exit
 		make kernfs-assise && make libfs-assise || exit 1
 	)
 }
 
-buildLineFS() {
+setAsyncReplicationOn() {
+	echo "Enable Async (background) replication. ASYNC_REPLICATION=1 in mlfs_config.sh"
 	(
 		cd "$PROJ_DIR" || exit
-		make kernfs-linefs && make libfs-linefs || exit 1
+		sed -i 's/export ASYNC_REPLICATION=0/export ASYNC_REPLICATION=1/g' mlfs_config.sh
+	)
+}
+
+setAsyncReplicationOff() {
+	echo "Disable Async (background) replication. ASYNC_REPLICATION=0 in mlfs_config.sh"
+	(
+		cd "$PROJ_DIR" || exit
+		sed -i 's/export ASYNC_REPLICATION=1/export ASYNC_REPLICATION=0/g' mlfs_config.sh
 	)
 }

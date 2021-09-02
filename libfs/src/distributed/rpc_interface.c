@@ -328,8 +328,7 @@ int init_rpc(struct mr_context *regions, int n_regions, char *listen_port, signa
 
 #ifdef NIC_OFFLOAD
 	// additional rdma agent for latency-sensitive channel.
-	char *low_lat_port= (char *)mlfs_zalloc(sizeof(char)*10);
-	sprintf(low_lat_port, "%d%d", 1234, 6);
+	char *low_lat_port = mlfs_conf.low_latency_port;
 #endif
 
 #ifdef KERNFS

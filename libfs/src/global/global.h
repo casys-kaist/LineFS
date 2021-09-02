@@ -159,6 +159,7 @@ typedef struct mlfs_config {
     char *x86_net_interface_name; /* the name of RDMA network interface of X86 host. */
     char *arm_net_interface_name; /* the name of RDMA network interface of ARM SmartNIC. */
     char *port; /* port number */
+    char *low_latency_port; /* port number for low-latency channel */
 
     int nic_offload;
 

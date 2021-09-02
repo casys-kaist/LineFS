@@ -39,26 +39,26 @@ spdk-init:
 rdma:
 	cd libfs/lib/rdma && make clean && make
 
-kernfs-assise:
-# Modify Makefiles. Replace "DFS = linefs" to "DFS = assise".
-	@echo "Building Assise SharedFS..."
-	sed -i 's/DFS = linefs/DFS = assise/g' kernfs/Makefile
-	make kernfs
-
 kernfs-linefs:
 # Modify Makefiles. Replace "DFS = assise" to "DFS = linefs".
 	@echo "Building LineFS SharedFS/NICFS..."
 	sed -i 's/DFS = assise/DFS = linefs/g' kernfs/Makefile
 	make kernfs
 
-libfs-assise:
+kernfs-assise:
 # Modify Makefiles. Replace "DFS = linefs" to "DFS = assise".
-	@echo "Building Assise LibFS..."
-	sed -i 's/DFS = linefs/DFS = assise/g' libfs/Makefile
-	make libfs
+	@echo "Building Assise SharedFS..."
+	sed -i 's/DFS = linefs/DFS = assise/g' kernfs/Makefile
+	make kernfs
 
 libfs-linefs:
 # Modify Makefiles. Replace "DFS = assise" to "DFS = linefs".
 	@echo "Building LineFS LibFS..."
 	sed -i 's/DFS = assise/DFS = linefs/g' libfs/Makefile
+	make libfs
+
+libfs-assise:
+# Modify Makefiles. Replace "DFS = linefs" to "DFS = assise".
+	@echo "Building Assise LibFS..."
+	sed -i 's/DFS = linefs/DFS = assise/g' libfs/Makefile
 	make libfs

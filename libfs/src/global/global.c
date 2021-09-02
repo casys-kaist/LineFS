@@ -38,6 +38,7 @@ void load_mlfs_configs(void) {
     mlfs_conf.x86_net_interface_name = getenv("X86_NET_INTERFACE_NAME");
     mlfs_conf.arm_net_interface_name = getenv("ARM_NET_INTERFACE_NAME");
     mlfs_conf.port = getenv("PORT_NUM");
+    mlfs_conf.low_latency_port = getenv("LOW_LATENCY_PORT_NUM");
     // mlfs_conf.kernfs_num_cores = get_val_from_env("KERNFS_NUM_CORES");
 
     // TODO change it as runtime config after refactoring.
@@ -148,6 +149,7 @@ void print_mlfs_configs(void) {
     printf("X86_NET_INTERFACE_NAME = %s\n", mlfs_conf.x86_net_interface_name);
 #endif
     printf("PORT_NUM = %s\n", mlfs_conf.port);
+    printf("LOW_LATENCY_PORT_NUM = %s\n", mlfs_conf.low_latency_port);
     printf("IOAT_MEMCPY_OFFLOAD = %d\n", mlfs_conf.ioat_memcpy_offload);
     if (mlfs_conf.ioat_memcpy_offload)
         printf("NUMA_NODE = %d\n", mlfs_conf.numa_node);

@@ -73,7 +73,7 @@ void set_fetch_done_flag_to_val(int libfs_id, uint64_t seqn,
 
 void print_thread_init(int th_num, char *th_name)
 {
-	mlfs_printf("THREAD_INIT %30s %d\n", th_name, th_num);
+	// mlfs_printf("THREAD_INIT %30s %d\n", th_name, th_num);
 }
 
 void update_host_heartbeat(uint64_t arrived_seqn) {

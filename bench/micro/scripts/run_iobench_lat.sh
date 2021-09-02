@@ -97,7 +97,7 @@ for OP in $OPS; do
 
 		if [ "$ACTION" = "cpu" ]; then
 			echo "Run streamcluster."
-			runParsec
+			runParsec false
 			# runStressNg
 		fi
 

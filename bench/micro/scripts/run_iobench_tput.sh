@@ -44,6 +44,7 @@ exe_proc() {
 
     if [ "$cpu" = "measure-exetime" ]; then
         run_bin="iobench.infinite"
+        TOTAL_FILE_SIZE="4096"
     else
         run_bin="iobench"
     fi
@@ -100,7 +101,7 @@ exe_all_procs() {
 
     if [ "$cpu" = "cpu-busy" ]; then
         echo "Run parsec."
-        runParsec
+        runParsec false
     fi
 
     # Get start time.
@@ -112,7 +113,7 @@ exe_all_procs() {
     ../../utils/shm_tool/shm -p /iobench_shm -w 0 &> /dev/null
 
     if [ "$cpu" = "measure-exetime" ]; then
-        measureParsecAndPrint "${op}.${iosize}.p${proc_num}.r${round}"
+        measureParsecAndPrint "${op}.${iosize}.p${proc_num}.r${round}" true
 
         echo "Kill iobench processes."
         sudo pkill -9 -f iobench.infinite
@@ -195,7 +196,7 @@ print_usage() {
     -t : system type <nic|hostonly> (hostonly is default)
     -p : print result of <dir_path>
     -c : run with cpu-intensive job
-    -a : measure parsec execution time (kernfs pinning mode) (File size should be large enough. Recommend: 10G file size, 4K io size)
+    -a : measure parsec execution time
     -y : run with hyperloop"
 }
 

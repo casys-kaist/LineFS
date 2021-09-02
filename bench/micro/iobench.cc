@@ -397,7 +397,7 @@ void io_bench::do_write(void)
 
 					    //time_stats_print(&stats, (char *)"---------------");
 
-					    printf("Throughput: %3.3f MB\n",(float)(file_size_bytes)
+					    fprintf(stderr, "Throughput: %3.3f MB\n",(float)(file_size_bytes)
 							    / (1024.0 * 1024.0 * (float) time_stats_get_avg(&stats)));
 				    }
 #endif

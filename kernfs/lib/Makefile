@@ -6,10 +6,10 @@ all:
 	 cd scripts && \
 	 sudo ./pkgdep.sh && \
 	 cd .. && \
-	 ./configure --without-isal && \
+	 ./configure && \
 	 make -j $(nproc))
 
-	 # ./configure && \
+	 # ./configure --without-isal && \ 	# ISAL might be a problem in Ubuntu 20.04
 
 redownload:
 	########
@@ -18,6 +18,7 @@ redownload:
 	@rm -rf spdk
 	git clone https://github.com/spdk/spdk.git
 	(cd spdk; git checkout v21.07; git submodule update --init)
+	#(cd spdk; git checkout 88e3ffd7b; git submodule update --init)
 
 clean:
 	make clean -C spdk

@@ -5,6 +5,7 @@
 	- [1.2. Dependency](#12-dependency)
 	- [1.3. Build stremacluster](#13-build-stremacluster)
 	- [1.4. Run streamcluster individually in long mode](#14-run-streamcluster-individually-in-long-mode)
+	- [1.5. Run streamcluster individually in short mode](#15-run-streamcluster-individually-in-short-mode)
 - [2. stress-ng](#2-stress-ng)
 	- [2.1. Install stress-ng](#21-install-stress-ng)
 	- [2.2. Run stress-ng](#22-run-stress-ng)
@@ -34,8 +35,17 @@ make parsec
 At the project root directory, run:
 
 ```shell
-scripts/run_parsec.sh # Run streamcluster on all three machines.
+scripts/run_parsec.sh -r # Run streamcluster on Replica 1 and Replica 2.
+scripts/run_parsec.sh -r -l # Run streamcluster on Primary, Replica 1 and Replica 2.
 scripts/run_parsec.sh -k # Kill running streamcluster processes.
+```
+
+### 1.5. Run streamcluster individually in short mode
+
+`short` mode is for measuring a degree of contention between  `streamcluster` and DFS.
+
+```shell
+scripts/run_parsec.sh -s # Run streamcluster on all three machines.
 ```
 
 ## 2. stress-ng
