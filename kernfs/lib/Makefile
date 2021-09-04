@@ -10,6 +10,8 @@ all:
 	 make -j $(nproc))
 
 	 # ./configure --without-isal && \ 	# ISAL might be a problem in Ubuntu 20.04
+	(cd ioat-dma-kernel-module && make)
+
 
 redownload:
 	########

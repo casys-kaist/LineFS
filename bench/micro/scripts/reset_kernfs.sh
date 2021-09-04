@@ -105,7 +105,7 @@ reset_kernfs() {
     if [ "$nic" = "nic" ]; then
         echo "Waiting for all the NICFSes and kernel workers to be ready. (Adjust sleep time at reset_kernfs() in reset_kernfs.sh)"
         # sleepAndCountdown 55 # 12G file size.
-        sleepAndCountdown 70 # 19G file size.
+        sleepAndCountdown 75 # 19G file size.
         # sleepAndCountdown 140 # 24G file size.
         # sleepAndCountdown 150 # 48G file size.
     else

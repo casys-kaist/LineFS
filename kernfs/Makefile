@@ -30,8 +30,8 @@ PRINT_FLAGS = -DPRINT_COLOR	# enable color scheme.
 
 ### Debug flags.
 # DBG_FLAGS = -DVALIDATE_LOGHDRS
-# DBG_FLAGS += -DDIGEST_MEMCPY_NOOP
-# DBG_FLAGS += -DDIGEST_MEMCPY_NO_COPY # Not working currently. We need to implement sending ack to libfs.
+# DBG_FLAGS += -DDIGEST_MEMCPY_NOOP # Not working currently. We need to implement sending ack to libfs.
+# DBG_FLAGS += -DDIGEST_MEMCPY_NO_COPY
 # DBG_FLAGS += -DSIGNAL_HANDLER 	# Enable it to grab signal. Example usages: mutrace, PROFILE_THPOOL, ...
 # DBG_FLAGS += -DCHECK_LOGHDR_LIST
 # DBG_FLAGS += -DCHECK_SANITY

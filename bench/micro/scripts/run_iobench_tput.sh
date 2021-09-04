@@ -113,6 +113,7 @@ exe_all_procs() {
     ../../utils/shm_tool/shm -p /iobench_shm -w 0 &> /dev/null
 
     if [ "$cpu" = "measure-exetime" ]; then
+        sleep 3
         measureParsecAndPrint "${op}.${iosize}.p${proc_num}.r${round}" true
 
         echo "Kill iobench processes."

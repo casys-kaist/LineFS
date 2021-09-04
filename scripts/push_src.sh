@@ -8,15 +8,15 @@ TARGET_ROOT_PATH="/tar/proj/rootdir/"  # The last "/" should not be skipped.
 
 if [ $# -ge 1 ] && [ $1 = "all" ] ; then
     echo "rsync all."
-    rsync -av $SRC_ROOT_PATH ${TARGET_ROOT_PATH} &
+    rsync -a $SRC_ROOT_PATH ${TARGET_ROOT_PATH} &
 
 elif [ $# -ge 1 ] && [ $1 = "rdma" ] ; then
     echo "sync libfs/lib/rdma only."
-    rsync -av ${SRC_ROOT_PATH}libfs/lib/rdma/ ${TARGET_ROOT_PATH}libfs/lib/rdma/ &
+    rsync -a ${SRC_ROOT_PATH}libfs/lib/rdma/ ${TARGET_ROOT_PATH}libfs/lib/rdma/ &
 
 else
     echo "exclude some directories."
-    rsync -av \
+    rsync -a \
         --exclude='libfs/lib' \
         --exclude='libfs/tests' \
         --exclude='kernfs/lib' \

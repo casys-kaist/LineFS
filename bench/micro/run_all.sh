@@ -116,32 +116,32 @@
 
 	# Main.
 	if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then # script is executed directly.
-		# Kill all iobench processes.
+		## Kill all iobench processes.
 		sudo pkill -9 iobench
 
-		# Build linefs.
+		## Build linefs.
 		buildLineFS
 
-		# Run LineFS.
-		runLatencyMicrobench linefs
-		runLatencyMicrobench linefs streamcluster
-		runThroughputMicrobench linefs
-		runThroughputMicrobench linefs streamcluster
+		## Run LineFS.
+		runLatencyMicrobench $LINEFS
+		runLatencyMicrobench $LINEFS streamcluster
+		runThroughputMicrobench $LINEFS
+		runThroughputMicrobench $LINEFS streamcluster
 
-		# Build assise.
+		## Build assise.
 		buildAssise
 
-		# Run Assise.
-		runLatencyMicrobench assise
-		runLatencyMicrobench assise streamcluster
-		runThroughputMicrobench assise
-		runThroughputMicrobench assise streamcluster
+		## Run Assise.
+		runLatencyMicrobench $ASSISE
+		runLatencyMicrobench $ASSISE streamcluster
+		runThroughputMicrobench $ASSISE
+		runThroughputMicrobench $ASSISE streamcluster
 
-		# Print results.
-		printLatencyMicrobenchResults linefs
-		printLatencyMicrobenchResults assise
-		printThroughputMicrobenchResults linefs
-		printThroughputMicrobenchResults assise
+		## Print results.
+		printLatencyMicrobenchResults $LINEFS
+		printLatencyMicrobenchResults $ASSISE
+		printThroughputMicrobenchResults $LINEFS
+		printThroughputMicrobenchResults $ASSISE
 	fi
 
 	exit
