@@ -1077,6 +1077,9 @@ static void wait_for_event(void)
 
 	events = mlfs_zalloc(sizeof(struct epoll_event) * MAX_EVENTS);
 
+	// Send ready signal.
+	send_ready_signal("kernfs");
+
 	while(1) {
 		n = epoll_wait(epfd, events, MAX_EVENTS, -1);
 

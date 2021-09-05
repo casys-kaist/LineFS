@@ -90,6 +90,7 @@ float get_cpu_clock_speed(void);
 int sockaddr_cmp(struct sockaddr *x, struct sockaddr *y);
 int get_cpuid(void);
 int fetch_intf_ip(char* intf, char* host);
+void send_ready_signal(const char* dir);
 
 // for directory path management
 

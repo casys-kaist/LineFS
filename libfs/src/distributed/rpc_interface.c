@@ -113,6 +113,9 @@ int tcp_setup_server (int *serv_sock_fd, int *cli_sock_fd)
     if (listen(*serv_sock_fd, 5) < 0)
         panic ("Server: listen failed.\n");
 
+    // Send a signal that I'm ready.
+    send_ready_signal("kernfs");
+
     len = sizeof(struct sockaddr_in);
     if ((*cli_sock_fd = accept(*serv_sock_fd, (struct sockaddr*)&cli_addr, &len)) < 0)
         panic ("Server: accept failed.");

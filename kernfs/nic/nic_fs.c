@@ -1062,6 +1062,9 @@ void init_nic_fs(void)
 	print_g_kernfs_peers();
 
 #endif
+
+	send_ready_signal("nicfs");
+
 	// TODO sleep forever???
 	while (1) {
 		sleep(100000);

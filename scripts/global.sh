@@ -1,6 +1,17 @@
 #!/bin/bash
-PROJ_DIR="/path/to/host/proj_root"     # Host's project root directory path.
-NIC_PROJ_DIR="/path/to/nic/proj_root" # NIC's project root directory path.
+## Set paths in X86 host.
+PROJ_DIR="/path/to/proj_root/in/x86/host"     # Host's project root directory path.
+SIGNAL_DIR="$PROJ_DIR/scripts/signals"
+KERNFS_SIGNAL_DIR="$SIGNAL_DIR/kernfs"
+FORMAT_SIGNAL_DIR="$SIGNAL_DIR/mkfs"
+NIC_SRC_DIR="/path/to/arm/source/code/in/host" # Host's path of the directory that includes source code of NIC.
+SIGNAL_DIR_ARM="$NIC_SRC_DIR/scripts/signals"
+KERNFS_SIGNAL_DIR_ARM="$SIGNAL_DIR_ARM/nicfs"
+
+## Set paths in ARM.
+NIC_PROJ_DIR="/path/to/proj_root/in/nic" # NIC's project root directory path.
+NIC_SIGNAL_DIR="$NIC_PROJ_DIR/scripts/signals"
+NICFS_SIGNAL_DIR="$NIC_SIGNAL_DIR/kernfs"
 
 SYS=$(gcc -dumpmachine)
 if [ $SYS = "aarch64-linux-gnu" ]; then
@@ -9,16 +20,30 @@ else
 	PINNING="numactl -N0 -m0"
 fi
 
+# Hostnames of X86 hosts.
+# You can get this values by running `hostname` command on each X86 host.
 HOST_1="libra06"
 HOST_2="libra08"
 HOST_3="libra09"
 
-NIC_1="libra06-nic-rdma"
-NIC_2="libra08-nic-rdma"
-NIC_3="libra09-nic-rdma"
+# Hostname (or IP address) of host machines. You should be able to ssh to each machine with these names.
+HOST_1_INF="libra06"
+HOST_2_INF="libra08"
+HOST_3_INF="libra09"
+
+# Hostnames of NICs
+# You can get this values by running `hostname` command on each NIC.
+NIC_1="libra06-nic"
+NIC_2="libra08-nic"
+NIC_3="libra09-nic"
+
+# Name (or IP address) of RDMA interface of NICs. You should be able to ssh to each NIC with these names.
+NIC_1_INF="libra06-nic-rdma"
+NIC_2_INF="libra08-nic-rdma"
+NIC_3_INF="libra09-nic-rdma"
 
 # Set tty for output. You can find the number X (/dev/pts/X) with the command: `tty`
-HOST_1_TTY=0
+HOST_1_TTY=33
 HOST_2_TTY=0
 HOST_3_TTY=0
 
@@ -26,13 +51,13 @@ NIC_1_TTY=0
 NIC_2_TTY=0
 NIC_3_TTY=0
 
-SSH_HOST_1="ssh $HOST_1"
-SSH_HOST_2="ssh $HOST_2"
-SSH_HOST_3="ssh $HOST_3"
+SSH_HOST_1="ssh $HOST_1_INF"
+SSH_HOST_2="ssh $HOST_2_INF"
+SSH_HOST_3="ssh $HOST_3_INF"
 
-SSH_NIC_1="ssh $NIC_1"
-SSH_NIC_2="ssh $NIC_2"
-SSH_NIC_3="ssh $NIC_3"
+SSH_NIC_1="ssh $NIC_1_INF"
+SSH_NIC_2="ssh $NIC_2_INF"
+SSH_NIC_3="ssh $NIC_3_INF"
 
 buildLineFS() {
 	echo "Building LineFS."
@@ -81,5 +106,5 @@ dumpConfigs() {
 	config_dump_path="$1"
 	cp $PROJ_DIR/kernfs/Makefile "$config_dump_path/Makefile.kernfs"
 	cp $PROJ_DIR/libfs/Makefile "$config_dump_path/Makefile.libfs"
-	cp $PROJ_DIR/mlfs_config.sh $config_dump_path/mlfs_config
+	cp $PROJ_DIR/mlfs_config.sh "$config_dump_path/mlfs_config"
 }

@@ -11,6 +11,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <sys/syscall.h>
+#include <sys/stat.h>
 
 //For stack backtrace in panic
 #include <execinfo.h>
@@ -307,4 +308,57 @@ int fetch_intf_ip(char* intf, char* host)
 
 	freeifaddrs(ifaddr);
 	return 0;
+}
+
+/**
+ * @brief Notify that I'm ready. Assuming that source code is shared with NFS a
+ * file is used as a communication channel. Namely, we write '1' to a file whose
+ * name is $(hostname). It is for resetting KernFS with scripts, reset_kernfs.sh.
+ */
+void send_ready_signal(const char* dir) {
+	FILE *fp;
+	int ret;
+	char hostname[256];
+	char file_path[4096];
+	char dir_path[4096];
+	char *signal_path;
+	struct stat st = {0};
+
+#ifdef NIC_SIDE
+	signal_path = mlfs_conf.arm_signal_path;
+#else
+	signal_path = mlfs_conf.x86_signal_path;
+#endif
+
+		ret = gethostname(hostname, 256);
+	if (ret == -1) {
+		panic("Failed to get hostname.\n");
+	}
+
+	// Check directories exist.
+	if (stat(signal_path, &st) == -1) {
+		if (mkdir(signal_path, 0) == 0) {
+			mode_t mode = 0775;
+			chmod(signal_path, mode);
+		}
+	}
+
+	sprintf(dir_path, "%s/%s", signal_path, dir);
+	if (stat(dir_path, &st) == -1) {
+		if (mkdir(dir_path, 0) == 0) {
+			mode_t mode = 0775;
+			chmod(dir_path, mode);
+		}
+	}
+
+	// Write to a file.
+	sprintf(file_path, "%s/%s/%s", signal_path, dir, hostname);
+	printf("It is Ready. Write 1 to file: %s\n", file_path);
+
+	fp = fopen(file_path, "w");
+	if (fp == NULL) {
+		panic("File open for signalling failed.\n");
+	}
+	fprintf(fp, "%d", 1);
+	fclose(fp);
 }

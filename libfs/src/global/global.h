@@ -224,6 +224,9 @@ typedef struct mlfs_config {
     // Hyperloop
     char *hyperloop_ops_file_path;
 
+    char *x86_signal_path;
+    char *arm_signal_path;
+
 } mlfs_config_t;
 
 extern mlfs_config_t mlfs_conf;

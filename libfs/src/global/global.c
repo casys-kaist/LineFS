@@ -138,6 +138,8 @@ void load_mlfs_configs(void) {
 
     //// Hyperloop
     mlfs_conf.hyperloop_ops_file_path = getenv("HYPERLOOP_OPS_FILE_PATH");
+    mlfs_conf.x86_signal_path = getenv("X86_SIGNAL_PATH");
+    mlfs_conf.arm_signal_path = getenv("ARM_SIGNAL_PATH");
 
 }
 
@@ -183,5 +185,8 @@ void print_mlfs_configs(void) {
     printf("THREAD_NUM_END_PIPELINE = %d\n", mlfs_conf.thread_num_end_pipeline);
     printf("REQUEST_RATE_LIMIT_THRESHOLD = %d\n", mlfs_conf.request_rate_limit_threshold);
     printf("PREFETCH_DATA_CAP = %d\n", mlfs_conf.prefetch_data_cap);
+    printf("----------- for experiment --------------------\n");
+    printf("X86_SIGNAL_PATH = %s\n", mlfs_conf.x86_signal_path);
+    printf("ARM_SIGNAL_PATH = %s\n", mlfs_conf.arm_signal_path);
     printf("============================================\n");
 }

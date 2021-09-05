@@ -1,3 +1,5 @@
 Run script in the root directory of the project.
 Example:
-$ scripts/mkfs_run_kernfs.sh
+$ scripts/run_kernfs.sh
+
+Assuming that we are using NFS to share the source code, `signals` directory includes files for the communication between different machines.

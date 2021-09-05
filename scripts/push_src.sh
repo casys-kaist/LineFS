@@ -22,6 +22,7 @@ else
         --exclude='kernfs/lib' \
         --exclude='bench' \
         --exclude='sleep.sh' \
+        --exclude='scripts/signals' \
         $SRC_ROOT_PATH ${TARGET_ROOT_PATH} &
         # --exclude='kernfs/distributed/rpc_interface.h' \
         # --exclude='libfs/src/distributed/rpc_interface.h' \

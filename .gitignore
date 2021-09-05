@@ -38,3 +38,5 @@ compile_commands.*
 
 # temp files.
 commit_msg
+
+scripts/signals
