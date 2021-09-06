@@ -64,4 +64,4 @@ define process name=filereader,instances=1
 
 echo  "Varmail Version 3.0 personality successfully loaded"
 
-run 30
+run 20

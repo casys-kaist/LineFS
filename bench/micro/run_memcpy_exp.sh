@@ -52,33 +52,15 @@
 		)
 	}
 
-	setMemcpyBatching() {
-		val=$1
-		echo "Set Memcpy Batching config to $val."
-		(
-			cd "$PROJ_DIR" || exit
-			if [ "$val" = 0 ]; then
-				sed -i 's/WITH_SNIC_COMMON_FLAGS += -DBATCH_MEMCPY_LIST/# WITH_SNIC_COMMON_FLAGS += -DBATCH_MEMCPY_LIST/g' kernfs/Makefile
-				sed -i 's/WITH_SNIC_FLAGS += -DBATCH_MEMCPY_LIST/# WITH_SNIC_FLAGS += -DBATCH_MEMCPY_LIST/g' libfs/Makefile
-			else
-				sed -i 's/# WITH_SNIC_COMMON_FLAGS += -DBATCH_MEMCPY_LIST/WITH_SNIC_COMMON_FLAGS += -DBATCH_MEMCPY_LIST/g' kernfs/Makefile
-				sed -i 's/#WITH_SNIC_COMMON_FLAGS += -DBATCH_MEMCPY_LIST/WITH_SNIC_COMMON_FLAGS += -DBATCH_MEMCPY_LIST/g' kernfs/Makefile
-				sed -i 's/# WITH_SNIC_FLAGS += -DBATCH_MEMCPY_LIST/WITH_SNIC_FLAGS += -DBATCH_MEMCPY_LIST/g' libfs/Makefile
-				sed -i 's/#WITH_SNIC_FLAGS += -DBATCH_MEMCPY_LIST/WITH_SNIC_FLAGS += -DBATCH_MEMCPY_LIST/g' libfs/Makefile
-			fi
-		)
-	}
-
 	setIOATInterruptConfig() {
 		val=$1
 		echo "Set IOAT Interrupt Kernel Module config to $val."
 		(
 			cd "$PROJ_DIR" || exit
 			if [ "$val" = 0 ]; then
-				sed -i 's/WITH_SNIC_HOST_FLAGS += -DIOAT_INTERRUPT_KERNEL_MODULE/# WITH_SNIC_HOST_FLAGS += -DIOAT_INTERRUPT_KERNEL_MODULE/g' kernfs/Makefile
+				sed -i 's/.*WITH_SNIC_HOST_FLAGS += -DIOAT_INTERRUPT_KERNEL_MODULE/# WITH_SNIC_HOST_FLAGS += -DIOAT_INTERRUPT_KERNEL_MODULE/g' kernfs/Makefile
 			else
-				sed -i 's/# WITH_SNIC_HOST_FLAGS += -DIOAT_INTERRUPT_KERNEL_MODULE/WITH_SNIC_HOST_FLAGS += -DIOAT_INTERRUPT_KERNEL_MODULE/g' kernfs/Makefile
-				sed -i 's/#WITH_SNIC_HOST_FLAGS += -DIOAT_INTERRUPT_KERNEL_MODULE/WITH_SNIC_HOST_FLAGS += -DIOAT_INTERRUPT_KERNEL_MODULE/g' kernfs/Makefile
+				sed -i 's/.*WITH_SNIC_HOST_FLAGS += -DIOAT_INTERRUPT_KERNEL_MODULE/WITH_SNIC_HOST_FLAGS += -DIOAT_INTERRUPT_KERNEL_MODULE/g' kernfs/Makefile
 			fi
 		)
 	}
@@ -89,10 +71,9 @@
 		(
 			cd "$PROJ_DIR" || exit
 			if [ "$val" = 0 ]; then
-				sed -i 's/DBG_FLAGS += -DDIGEST_MEMCPY_NO_COPY/# DBG_FLAGS += -DDIGEST_MEMCPY_NO_COPY/g' kernfs/Makefile
+				sed -i 's/.*DBG_FLAGS += -DDIGEST_MEMCPY_NO_COPY/# DBG_FLAGS += -DDIGEST_MEMCPY_NO_COPY/g' kernfs/Makefile
 			else
-				sed -i 's/# DBG_FLAGS += -DDIGEST_MEMCPY_NO_COPY/DBG_FLAGS += -DDIGEST_MEMCPY_NO_COPY/g' kernfs/Makefile
-				sed -i 's/#DBG_FLAGS += -DDIGEST_MEMCPY_NO_COPY/DBG_FLAGS += -DDIGEST_MEMCPY_NO_COPY/g' kernfs/Makefile
+				sed -i 's/.*DBG_FLAGS += -DDIGEST_MEMCPY_NO_COPY/DBG_FLAGS += -DDIGEST_MEMCPY_NO_COPY/g' kernfs/Makefile
 			fi
 		)
 	}

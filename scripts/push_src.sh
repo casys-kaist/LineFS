@@ -1,10 +1,6 @@
 #!/bin/bash
-SRC_ROOT_PATH="/src/proj/rootdir/"
-TARGET_ROOT_PATH="/tar/proj/rootdir/"  # The last "/" should not be skipped.
-
-# SRC_ROOT_PATH="/home/yulistic/assise-nic/"
-# TARGET_ROOT_PATH="/home/yulistic/assise-nic-arm/"  # The last "/" should not be skipped.
-# TARGET_ROOT_PATH="/home/yulistic/playground/LineFS/"  # The last "/" should not be skipped.
+SRC_ROOT_PATH="/src/proj/rootdir/(x86)"
+TARGET_ROOT_PATH="/tar/proj/rootdir/(arm)"  # The last "/" should not be skipped.
 
 if [ $# -ge 1 ] && [ $1 = "all" ] ; then
     echo "rsync all."

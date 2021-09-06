@@ -61,7 +61,7 @@ export REQUEST_RATE_LIMIT_THRESHOLD=500
 export PREFETCH_DATA_CAP=2500	# Prefetch data cap in MB.
 
 # For experiment
-export X86_SIGNAL_PATH='/path/to/signal/directory/in/x86' # Signal path in X86 host. It should be the same as PROJ_DIR in global.sh
-export ARM_SIGNAL_PATH='/path/to/signal/directory/in/arm' # Signal path in ARM SoC. It should be the same as NIC_PROJ_DIR in global.sh
+export X86_SIGNAL_PATH='/path/to/signal/directory/in/x86' # Signal path in X86 host. It should be the same as $PROJ_DIR(in global.sh)/scripts/signals.
+export ARM_SIGNAL_PATH='/path/to/signal/directory/in/arm' # Signal path in ARM SoC. It should be the same as $NIC_PROJ_DIR(in global.sh)/scripts/signals.
 export DIGEST_NOOP=0	# Not supported in NIC-offloading setup.
 export HYPERLOOP_OPS_FILE_PATH='/home/yulistic/assise-host-only/libfs/lib/hyperloop/trace/micro/latency/sw.1g.4K'

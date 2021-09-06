@@ -119,6 +119,9 @@
 		## Kill all iobench processes.
 		sudo pkill -9 iobench
 
+		## Dump configs.
+		dumpConfigs $LOG_DIR/configs
+
 		## Build linefs.
 		buildLineFS
 

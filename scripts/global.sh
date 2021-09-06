@@ -1,15 +1,15 @@
 #!/bin/bash
 ## Set paths in X86 host.
-PROJ_DIR="/path/to/proj_root/in/x86/host"     # Host's project root directory path.
+PROJ_DIR="/path/to/proj_root/in/x86/host" ### Project root directory path in x86 host.
 SIGNAL_DIR="$PROJ_DIR/scripts/signals"
 KERNFS_SIGNAL_DIR="$SIGNAL_DIR/kernfs"
 FORMAT_SIGNAL_DIR="$SIGNAL_DIR/mkfs"
-NIC_SRC_DIR="/path/to/arm/source/code/in/host" # Host's path of the directory that includes source code of NIC.
+NIC_SRC_DIR="/path/to/arm/source/code/in/x86/host" ### Path of the host directory that includes source code for NIC.
 SIGNAL_DIR_ARM="$NIC_SRC_DIR/scripts/signals"
 KERNFS_SIGNAL_DIR_ARM="$SIGNAL_DIR_ARM/nicfs"
 
 ## Set paths in ARM.
-NIC_PROJ_DIR="/path/to/proj_root/in/nic" # NIC's project root directory path.
+NIC_PROJ_DIR="/path/to/proj_root/in/nic" ### Project root directory path in SmartNIC.
 NIC_SIGNAL_DIR="$NIC_PROJ_DIR/scripts/signals"
 NICFS_SIGNAL_DIR="$NIC_SIGNAL_DIR/kernfs"
 
@@ -99,6 +99,21 @@ setAsyncReplicationOff() {
 	(
 		cd "$PROJ_DIR" || exit
 		sed -i 's/export ASYNC_REPLICATION=1/export ASYNC_REPLICATION=0/g' mlfs_config.sh
+	)
+}
+
+setMemcpyBatching() {
+	val=$1
+	echo "Set Memcpy Batching config to $val."
+	(
+		cd "$PROJ_DIR" || exit
+		if [ "$val" = 0 ]; then
+			sed -i 's/.*WITH_SNIC_COMMON_FLAGS += -DBATCH_MEMCPY_LIST/# WITH_SNIC_COMMON_FLAGS += -DBATCH_MEMCPY_LIST/g' kernfs/Makefile
+			sed -i 's/.*WITH_SNIC_FLAGS += -DBATCH_MEMCPY_LIST/# WITH_SNIC_FLAGS += -DBATCH_MEMCPY_LIST/g' libfs/Makefile
+		else
+			sed -i 's/.*WITH_SNIC_COMMON_FLAGS += -DBATCH_MEMCPY_LIST/WITH_SNIC_COMMON_FLAGS += -DBATCH_MEMCPY_LIST/g' kernfs/Makefile
+			sed -i 's/.*WITH_SNIC_FLAGS += -DBATCH_MEMCPY_LIST/WITH_SNIC_FLAGS += -DBATCH_MEMCPY_LIST/g' libfs/Makefile
+		fi
 	)
 }
 

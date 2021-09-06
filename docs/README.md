@@ -356,8 +356,8 @@ If you could correctly run the Kernel workers and NICFSes manually, you can use 
 To make the script work, set signal paths in `mlfs_conf.sh` as below. This script works only if you are sharing the source codes using NFS (Refer to [NFS mount for source coe management and deployment](#5-nfs-mount-for-source-code-management-and-deployment)).
 
 ```shell
-export X86_SIGNAL_PATH='/home/host01/LineFS_x86/scripts/signals' # Signal path in X86 host. It should be the same as PROJ_DIR in global.sh
-export ARM_SIGNAL_PATH='/home/host01/LineFS_ARM/scripts/signals' # Signal path in ARM SoC. It should be the same as NIC_PROJ_DIR in global.sh
+export X86_SIGNAL_PATH='/home/host01/LineFS_x86/scripts/signals' # Signal path in X86 host. It should be the same as $PROJ_DIR(in global.sh)/scripts/signals.
+export ARM_SIGNAL_PATH='/home/host01/LineFS_ARM/scripts/signals' # Signal path in ARM SoC. It should be the same as $NIC_PROJ_DIR(in global.sh)/scripts/signals.
 ```
 
 Run the script. It will format devices of x86 hosts and run kernel workers and NICFSes. Make sure that the source code is built as LineFS (`make kernfs-linefs`).

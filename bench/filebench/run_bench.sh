@@ -1,6 +1,7 @@
 #! /usr/bin/sudo /bin/bash
 PROJ_ROOT=../../
 MICROBENCH_DIR=${PROJ_ROOT}/bench/micro
+OUT_DIR="output"
 
 CPU_JOB=0
 FILE_SERVER=1
@@ -67,7 +68,8 @@ run_varmail() {
 		./scripts/reset_kernfs.sh -t "$SYSTEM"
 	)
 
-	OUTPUT="output.varmail"
+	OUTPUT="${OUT_DIR}/${SYSTEM}/output.varmail"
+	mkdir -p "${OUT_DIR}/${SYSTEM}"
 	if [ $CPU_JOB = "1" ]; then
 		OUTPUT="${OUTPUT}_cpu"
 		run_parsec
@@ -96,7 +98,8 @@ run_fileserver() {
 		./scripts/reset_kernfs.sh -t "$SYSTEM"
 	)
 
-	OUTPUT="output.fileserver"
+	OUTPUT="${OUT_DIR}/${SYSTEM}/output.fileserver"
+	mkdir -p "${OUT_DIR}/${SYSTEM}"
 	if [ $CPU_JOB = "1" ]; then
 		OUTPUT="${OUTPUT}_cpu"
 		run_parsec
