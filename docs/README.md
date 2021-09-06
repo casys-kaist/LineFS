@@ -13,23 +13,27 @@
   - [3.2. SmartNIC setup](#32-smartnic-setup)
   - [3.3. Persistent memory configuration](#33-persistent-memory-configuration)
 - [4. Download source code](#4-download-source-code)
-- [5. Configuring LineFS](#5-configuring-linefs)
-  - [5.1. Set project root paths and hostnames](#51-set-project-root-paths-and-hostnames)
-  - [5.2. Compile-time configurations](#52-compile-time-configurations)
-  - [5.3. Run-time configurations](#53-run-time-configurations)
-- [6. Compiling LineFS](#6-compiling-linefs)
-  - [6.1. Build on the host machine](#61-build-on-the-host-machine)
-  - [6.2. Build on SmartNIC](#62-build-on-smartnic)
-- [7. Formatting devices](#7-formatting-devices)
-- [8. Deploying LineFS](#8-deploying-linefs)
-  - [8.1. Deployment scenario](#81-deployment-scenario)
-  - [8.2. Setup I/OAT device](#82-setup-ioat-device)
-  - [8.3. Run kernel workers on host machines](#83-run-kernel-workers-on-host-machines)
-  - [8.4. Run NICFS on SmartNIC](#84-run-nicfs-on-smartnic)
-    - [8.4.1. Make NICFSes sleep for different durations](#841-make-nicfses-sleep-for-different-durations)
-  - [8.5. Run applications](#85-run-applications)
-- [9. Run Assise](#9-run-assise)
-- [10. Running benchmarks](#10-running-benchmarks)
+- [5. NFS mount for source code management and deployment](#5-nfs-mount-for-source-code-management-and-deployment)
+  - [5.1. NFS server setup](#51-nfs-server-setup)
+  - [5.2. NFS client setup](#52-nfs-client-setup)
+- [6. Configuring LineFS](#6-configuring-linefs)
+  - [6.1. Set project root paths, hostnames, and network interfaces](#61-set-project-root-paths-hostnames-and-network-interfaces)
+  - [6.2. Make root and a user can ssh to the x86 hosts and NICs without entering a password](#62-make-root-and-a-user-can-ssh-to-the-x86-hosts-and-nics-without-entering-a-password)
+  - [6.3. Compile-time configurations](#63-compile-time-configurations)
+  - [6.4. Run-time configurations](#64-run-time-configurations)
+- [7. Compiling LineFS](#7-compiling-linefs)
+  - [7.1. Build on the host machine](#71-build-on-the-host-machine)
+  - [7.2. Build on SmartNIC](#72-build-on-smartnic)
+- [8. Formatting devices](#8-formatting-devices)
+- [9. Deploying LineFS](#9-deploying-linefs)
+  - [9.1. Deployment scenario](#91-deployment-scenario)
+  - [9.2. Setup I/OAT device](#92-setup-ioat-device)
+  - [9.3. Run kernel workers on host machines](#93-run-kernel-workers-on-host-machines)
+  - [9.4. Run NICFS on SmartNIC](#94-run-nicfs-on-smartnic)
+    - [9.4.1. Running all Kernel workers and NICFSes at once](#941-running-all-kernel-workers-and-nicfses-at-once)
+  - [9.5. Run applications](#95-run-applications)
+- [10. Run Assise](#10-run-assise)
+- [11. Running benchmarks](#11-running-benchmarks)
 
 > If you are using our testbed for SOSP 2021 Artifact Evaluation, please read [README for Artifact Evaluation Reviewers]() first. It is provided on the HotCRP submission page.  
 ***After reading it, you can directly go on to [Configuring LineFS](#5-configuring-linefs).***
@@ -106,36 +110,127 @@ git clone git@github.com:casys-kaist/LineFS.git
 cd LineFS
 ```
 
-## 5. Configuring LineFS
+## 5. NFS mount for source code management and deployment
 
-### 5.1. Set project root paths and hostnames
+With NFS, you can easily share the same source code among three machines and three SmartNICs.
+It is recommended to maintain two different directories for the same source code, one is for x86 hosts and the other is for ARM SoCs in SmartNIC.
 
-Set project root paths of the host machine and the SmartNIC. For example, if your source codes are located in `/home/guest/LineFS_x86` on host and `/home/geust/LineFS_ARM` on SmartNIC, set as below.
+### 5.1. NFS server setup
+
+Locate source codes in one of the x86 hosts. Let assume source codes for x86 are stored at ${HOME}/LineFS_x86 and for ARM are at ${HOME}/LineFS_ARM.
+
+```shell
+cd ~
+git clone https://github.com/casys-kaist/LineFS.git LineFS_x86
+cp -r LineFS_x86 LineFS_ARM
+```
+
+***You can skip the following process if the NFS server is already set up.***
+
+Install NFS server on libra06 machine.
+
+```shell
+sudo apt update
+sudo apt install nfs-kernel-server
+```
+
+Add two source code directory paths to `/etc/exports` file. For example, if the paths are `/home/guest/LineFS_x86` and `/home/guest/LineFS_ARM`, add following lines to the file.
+
+```
+/home/guest/LineFS_x86 *(rw,no_root_squash,sync,insecure,no_subtree_check,no_wdelay)
+/home/guest/LineFS_ARM *(rw,no_root_squash,sync,insecure,no_subtree_check,no_wdelay)
+```
+
+To apply the modification, run the following command.
+```shell
+sudo exportfs -rv
+```
+
+### 5.2. NFS client setup
+
+***You can skip this process if the NFS clients are set up correctly.***
+
+In the x86 hosts and NICs, install NFS client packages.
+
+```shell
+sudo apt update
+sudo apt install nfs-common
+```
+
+On the x86 hosts, mount the x86 source code directory.
+
+```shell
+cd ~
+mkdir LineFS_x86 	# If there is no directory, create one.
+sudo mount -t nfs <nfs_server_address>:/home/guest/LineFS_x86 /home/guest/LineFS_x86
+```
+
+Now, you should see the source code at `${HOME}/LineFS_x86` directory.
+
+Similarly, mount LineFS_ARM source codes to SmartNICs.
+Access to SmartNIC from host machines. In the NIC, mount the ARM source code directory. You need to set up all three NICs.
+```shell
+mkdir LineFS_ARM     # If there is no directory, create one.
+sudo mount -t nfs <nfs_server_address>:/home/guest/LineFS_ARM /home/guest/LineFS_ARM
+```
+
+## 6. Configuring LineFS
+
+### 6.1. Set project root paths, hostnames, and network interfaces
+
+Set project root paths of the host machine and the SmartNIC at `scripts/global.sh`. For example, if your source codes are located in `/home/guest/LineFS_x86` on host and `/home/geust/LineFS_ARM` on SmartNIC, set as below.
 
 ```shell
 PROJ_DIR="/home/guest/LineFS_x86"
 NIC_PROJ_DIR="/home/guest/LineFS_ARM"
 ```
 
-Set hostnames for three host machines and three SmartNICs. The name of SmartNICs should be the name of RDMA interfaces. For example, If you are using three host machines, `host01`, `host02`, and `host03`, and three SmartNICs, `host01-nic`, `host02-nic`, and `host03-nic`, change `scripts/global.sh` as below.
+Set host's path of directory that contains source codes for ARM SoC.
 
 ```shell
+NIC_SRC_DIR="/home/guest/LineFS_ARM"
+```
+
+Set hostnames for three x86 hosts and three SmartNICs. For example, If you are using three host machines, `host01`, `host02`, and `host03`, and three SmartNICs, `host01-nic`, `host02-nic`, and `host03-nic`, change `scripts/global.sh` as below.
+
+```shell
+# Hostnames of X86 hosts.
+# You can get this values by running `hostname` command on each X86 host.
 HOST_1="host01"
 HOST_2="host02"
 HOST_3="host03"
 
-NIC_1="host01-nic-rdma"
-NIC_2="host02-nic-rdma"
-NIC_3="host03-nic-rdma"
+# Hostnames of NICs
+# You can get this values by running `hostname` command on each NIC.
+NIC_1="host01-nic"
+NIC_2="host02-nic"
+NIC_3="host03-nic"
 ```
 
-Or you can use IP addresses instead of hostnames.
+Set the names of network interfaces of x86 hosts and SmartNICs. You can use IP addresses instead of the names. The name of SmartNICs should be the name of RDMA interfaces. If hosts' IP addresses are mapped to `host01`, `host02`, and `host03`, and NICs' are mapped to `host01-nic-rdma`, `host02-nic-rdma`, and `host03-nic-rdma` in `/etc/hosts`, set `scripts/global.sh` as below.
 
-### 5.2. Compile-time configurations
+```shell
+# Hostname (or IP address) of host machines. You should be able to ssh to each machine with these names.
+HOST_1_INF="host01"
+HOST_2_INF="host02"
+HOST_3_INF="host03"
+
+# Name (or IP address) of RDMA interface of NICs. You should be able to ssh to each NIC with these names.
+NIC_1_INF="host01-nic-rdma"
+NIC_2_INF="host02-nic-rdma"
+NIC_3_INF="host03-nic-rdma"
+```
+
+### 6.2. Make root and a user can ssh to the x86 hosts and NICs without entering a password
+
+To use scripts provided in this source code, you must be able to access all the machines and NICs via ssh without entering a password as a `root`.
+In other words, you need to copy the `root` account's public key to all the machines and NICs. It is optional but recommended to copy the public key of your account too if you don't want to execute all the scripts as a `root`. `ssh-copy-id` is a useful command to do it. Note that, if you don't have a key, generate one with `ssh-keygen`.
+
+### 6.3. Compile-time configurations
 
 Locations of compile-time configurations are as below.
 
-- `kernfs/Makefile` and `libfs/Makefile` includes compile-time configurations. You have to re-compile LineFS to apply changes in the configurations. You can leave it as a default.
+- `kernfs/Makefile` and `libfs/Makefile` include compile-time configurations. You have to re-compile LineFS to apply changes in the configurations. You can leave it as a default.
 - Some constants like the private log size, the number of max LibFS processes are defined in `libfs/src/global/global.h`. You can leave it as a default.
 - IP addresses of machines and SmartNICs and the order of replication chain are defined as a variable `hot_replicas` in `libfs/src/distributed/rpc_interface.h`. You have to set correct values for this configuration.
 - A device size to be used by LineFS is defined as a variable `dev_size` in `libfs/src/storage/storage.h`. You can leave it as a default.
@@ -151,13 +246,13 @@ Locations of compile-time configurations are as below.
   };
   ```
 
-### 5.3. Run-time configurations
+### 6.4. Run-time configurations
 
 `mlfs_config.sh` includes run-time configurations. To apply changes in the configurations you need to restart LineFS.
 
-## 6. Compiling LineFS
+## 7. Compiling LineFS
 
-### 6.1. Build on the host machine
+### 7.1. Build on the host machine
 
 The following command will do all the compilations required on the host machine. It includes downloading and compiling libraries, compiling *LibFS* library, a *kernel worker*, an RDMA module and benchmarks, setting SPDK up, and formatting file system.
 
@@ -174,7 +269,7 @@ make kernfs-linefs     # Build kernel worker.
 make libfs-linefs      # Build LibFS.
 ```
 
-### 6.2. Build on SmartNIC
+### 7.2. Build on SmartNIC
 
 The following command will do all the compilations required on SmartNIC. It includes downloading and compiling libraries and compiling an RDMA module and `NICFS`.
 
@@ -190,7 +285,7 @@ make rdma               # Build rdma module.
 make kernfs-linefs      # Build `NICFS`
 ```
 
-## 7. Formatting devices
+## 8. Formatting devices
 
 Run the following command at the project root directory. Run it only on the host machines. (There is no device on the SmartNIC.)
 
@@ -198,9 +293,9 @@ Run the following command at the project root directory. Run it only on the host
 make mkfs
 ```
 
-## 8. Deploying LineFS
+## 9. Deploying LineFS
 
-### 8.1. Deployment scenario
+### 9.1. Deployment scenario
 
 Let's think of the following deployment scenario.
 There are three host machines and each host machine is equipped with a SmartNIC.
@@ -218,7 +313,7 @@ We want to make LineFS have a replication chain as below.
 
 - *Host machine 1* --> *Host machine 2* --> *Host machine 3*
 
-### 8.2. Setup I/OAT device
+### 9.2. Setup I/OAT device
 
 The command should be executed on each host machine.
 
@@ -228,7 +323,7 @@ make spdk-init
 
 You only need to run it once after reboot.
 
-### 8.3. Run kernel workers on host machines
+### 9.3. Run kernel workers on host machines
 
 The following script runs *kernel worker*.
 
@@ -238,7 +333,7 @@ scripts/run_kernfs.sh
 
 You have to execute this script on all three host machines. After running the script, *kernel workers* wait for SmartNICs to connect.
 
-### 8.4. Run NICFS on SmartNIC
+### 9.4. Run NICFS on SmartNIC
 
 Execute `scripts/run_kernfs.sh` on all three SmartNICs. Run them in the reverse order of the replication chain. The replication chain is defined as `hot_replicas` at `libfs/src/distributed/rpc_interface.h`. For example, if they are defined as below,
 
@@ -255,88 +350,24 @@ static struct peer_id hot_replicas[g_n_hot_rep] = {
 
 run `scripts/run_kernfs.sh` in `host03-nic` --> `host02-nic` --> `host01-nic` order. You have to wait that the previous SmartNIC finishes establishing its connections.
 
-#### 8.4.1. Make NICFSes sleep for different durations
+#### 9.4.1. Running all Kernel workers and NICFSes at once
 
-It is convenient to make the script wait for a while before running NICFS. Two files in the `../local_scripts` directory (outside of the project directory) make scripts sleep for a while. Set proper sleep time into those files and make sure that a soft link to the `../local_scripts` directory exists at the project root directory.
-
-1. `../local_scripts/sleep.sh`  
-  `scripts/run_kernfs.sh` and `scripts/mkfs_run_kernfs.sh` run this script before running NICFS.
-
-2. `../local_scripts/sleep_mkfs.sh`  
-   `scripts/mkfs_run_kernfs.sh` runs this script before running NICFS.
-
-Intended usage:
-
-- Execute the same scripts on all the host machines and NICs at the same time.
-- Use `run_kernfs.sh` if you dont' format host devices. Use `mkfs_run_kernfs.sh` if you format host device.
-
-Instead of `run_kernfs.sh`, you can run NICFS with `mkfs_run_kernfs.sh`. Although it doesn't format device - there is no device on SmartNIC -, it additionally sleeps for a duration designated by `../local_scripts/sleep_mkfs.sh`.
-
-> ***It is required to set `../local_scripts/sleep_mkfs.sh` up correctly because it is used by the other benchmark scripts.***
-
-Here is what you need to do.  
-Create `sleep.sh` and `sleep_mkfs.sh` files:
+If you could correctly run the Kernel workers and NICFSes manually, you can use a script to run all them with one command.
+To make the script work, set signal paths in `mlfs_conf.sh` as below. This script works only if you are sharing the source codes using NFS (Refer to [NFS mount for source coe management and deployment](#5-nfs-mount-for-source-code-management-and-deployment)).
 
 ```shell
-# At project root directory.
-
-mkdir ../local_scripts
-cat << EOT >> ../local_scripts/sleep.sh
-#!/bin/bash
-sleep 10
-EOT
-chmod +x ../local_scripts/sleep.sh
-
-cat << EOT >> ../local_scripts/sleep_mkfs.sh
-#!/bin/bash
-sleep 32
-EOT
-chmod +x ../local_scripts/sleep_mkfs.sh
+export X86_SIGNAL_PATH='/home/host01/LineFS_x86/scripts/signals' # Signal path in X86 host. It should be the same as PROJ_DIR in global.sh
+export ARM_SIGNAL_PATH='/home/host01/LineFS_ARM/scripts/signals' # Signal path in ARM SoC. It should be the same as NIC_PROJ_DIR in global.sh
 ```
 
-Adjust sleep time properly. For example, if both log area and public area are 19 GB then `../local_scripts/sleep.sh` files in each machine would be:
+Run the script. It will format devices of x86 hosts and run kernel workers and NICFSes. Make sure that the source code is built as LineFS (`make kernfs-linefs`).
 
 ```shell
-# Primary NIC
-#!/bin/bash
-sleep 20
+# At the project root directory of host01 machine,
+scripts/run_all_kernfs.sh
 ```
 
-```shell
-# Replica 1 NIC
-#!/bin/bash
-sleep 10
-```
-
-```shell
-# Replica 2 NIC
-#!/bin/bash
-# No sleep.
-```
-
-and `../local_scripts/sleep_mkfs.sh`  files would be:
-
-```shell
-# Primary NIC
-#!/bin/bash
-sleep 32 # 19 GB
-```
-
-```shell
-# Replica 1 NIC
-#!/bin/bash
-sleep 32 # 19 GB
-```
-
-```shell
-# Replica 2 NIC
-#!/bin/bash
-sleep 32 # 19 GB
-```
-
-If you increased a device size (`dev_size`) as mentioned at [Compile-time configurations](#52-compile-time-configurations), you have to increase sleep time of `../local_scripts/sleep_mkfs.sh` also.
-
-### 8.5. Run applications
+### 9.5. Run applications
 
 We are going to run a simple test application, `iotest`. Note that, all the LineFS applications run on the Primary host CPU (`host01`).
 
@@ -345,9 +376,9 @@ cd libfs/tests
 sudo ./run.sh ./iotest sw 1G 4K 1   # sequential write, 1GB file, 4KB i/o size, 1 thread
 ```
 
-## 9. Run Assise
+## 10. Run Assise
 
-To run Assise (DFS without NIC-offloading) rather than LineFS, you have to rebuild LibFS and SharedFS (KernFS).
+To run Assise (DFS without NIC-offloading) rather than LineFS, you have to rebuild LibFS and SharedFS (a.k.a. KernFS).
 
 ```shell
 # At the project root directory,
@@ -358,28 +389,8 @@ make libfs-assise
 You can use the same script, `scripts/run_kernfs.sh`, however, a SharedFS (KernFS) needs to wait for the next SharedFS in the replication chain to be ready.
 For example, run Replica 2's SharedFS -> wait for a while -> run Replica 1's SharedFS -> wait for a while --> run Primary's SharedFS.
 
-Note that, you have to set proper sleep time for each host as described at [Make NICFSes sleep for different durations](#841-make-nicfses-sleep-for-different-durations)
+You can use the same script, `scripts/run_all_kernfs.sh` to format devices and run all the SharedFSes with one command as described in [Running all Kernel workers and NICFSes at once](#941-running-all-kernel-workers-and-nicfses-at-once).
 
-An example of `../local_scripts/sleep.sh` files in each host machine:
-
-```shell
-# Primary.
-#!/bin/bash
-sleep 8
-```
-
-```shell
-# Replica 1
-#!/bin/bash
-sleep 4
-```
-
-```shell
-# Replica 2
-#!/bin/bash
-# No sleep.
-```
-
-## 10. Running benchmarks
+## 11. Running benchmarks
 
 Refer to [README-bench](README-bench.md).

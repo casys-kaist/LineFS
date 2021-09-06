@@ -104,6 +104,7 @@ setAsyncReplicationOff() {
 
 dumpConfigs() {
 	config_dump_path="$1"
+	mkdir -p "$config_dump_path"
 	cp $PROJ_DIR/kernfs/Makefile "$config_dump_path/Makefile.kernfs"
 	cp $PROJ_DIR/libfs/Makefile "$config_dump_path/Makefile.libfs"
 	cp $PROJ_DIR/mlfs_config.sh "$config_dump_path/mlfs_config"
