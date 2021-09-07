@@ -185,11 +185,19 @@ PROJ_DIR="/home/guest/LineFS_x86"
 NIC_PROJ_DIR="/home/guest/LineFS_ARM"
 ```
 
-Set host's path of directory that contains source codes for ARM SoC.
+Set host's path of directory that contains source codes for ARM SoC(NIC).
 
 ```shell
 NIC_SRC_DIR="/home/guest/LineFS_ARM"
 ```
+
+Set signal directory paths of the x86 host and ARM SoC(NIC) at `mlfs_config.sh`. These paths are required for automated scripts to run experiments.
+
+```shell
+export X86_SIGNAL_PATH='/home/guest/LineFS_x86/scripts/signals' # Signal path in X86 host. It should be the same as $PROJ_DIR(in global.sh)/scripts/signals.
+export ARM_SIGNAL_PATH='/home/guest/LineFS_ARM/scripts/signals' # Signal path in ARM SoC. It should be the same as $NIC_PROJ_DIR(in global.sh)/scripts/signals.
+```
+
 
 Set hostnames for three x86 hosts and three SmartNICs. For example, If you are using three host machines, `host01`, `host02`, and `host03`, and three SmartNICs, `host01-nic`, `host02-nic`, and `host03-nic`, change `scripts/global.sh` as below.
 
