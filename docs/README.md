@@ -17,10 +17,12 @@
   - [5.1. NFS server setup](#51-nfs-server-setup)
   - [5.2. NFS client setup](#52-nfs-client-setup)
 - [6. Configuring LineFS](#6-configuring-linefs)
-  - [6.1. Set project root paths, hostnames, and network interfaces](#61-set-project-root-paths-hostnames-and-network-interfaces)
-  - [6.2. Make root and a user can ssh to the x86 hosts and NICs without entering a password](#62-make-root-and-a-user-can-ssh-to-the-x86-hosts-and-nics-without-entering-a-password)
-  - [6.3. Compile-time configurations](#63-compile-time-configurations)
-  - [6.4. Run-time configurations](#64-run-time-configurations)
+  - [6.1. Set project root paths](#61-set-project-root-paths)
+  - [6.2. Set hostnames](#62-set-hostnames)
+  - [6.3. Set network interfaces](#63-set-network-interfaces)
+  - [6.4. Make root and a user can ssh to the x86 hosts and NICs without entering a password](#64-make-root-and-a-user-can-ssh-to-the-x86-hosts-and-nics-without-entering-a-password)
+  - [6.5. Compile-time configurations](#65-compile-time-configurations)
+  - [6.6. Run-time configurations](#66-run-time-configurations)
 - [7. Compiling LineFS](#7-compiling-linefs)
   - [7.1. Build on the host machine](#71-build-on-the-host-machine)
   - [7.2. Build on SmartNIC](#72-build-on-smartnic)
@@ -176,9 +178,16 @@ sudo mount -t nfs <nfs_server_address>:/home/guest/LineFS_ARM /home/guest/LineFS
 
 ## 6. Configuring LineFS
 
-### 6.1. Set project root paths, hostnames, and network interfaces
+### 6.1. Set project root paths
 
-Set project root paths of the host machine and the SmartNIC at `scripts/global.sh`. For example, if your source codes are located in `/home/guest/LineFS_x86` on host and `/home/geust/LineFS_ARM` on SmartNIC, set as below.
+Set project root paths of the host machine and the SmartNIC at `scripts/global.sh`.  
+For example, let assume the source codes are located as:
+* On x86 host,
+  * Source code for x86 host is located in `/home/guest/LineFS_x86`
+  * Source code for ARM SoC (NIC) is located in `/home/guest/LineFS_ARM_src`
+* On SmartNIC,
+  * Source code for ARM SoC (`/home/guest/LineFS_ARM_src` of host) is mounted at `/home/guest/LineFS_ARM` as NFS.
+
 
 ```shell
 PROJ_DIR="/home/guest/LineFS_x86"
@@ -188,7 +197,7 @@ NIC_PROJ_DIR="/home/guest/LineFS_ARM"
 Set host's path of directory that contains source codes for ARM SoC(NIC).
 
 ```shell
-NIC_SRC_DIR="/home/guest/LineFS_ARM"
+NIC_SRC_DIR="/home/guest/LineFS_ARM_src"
 ```
 
 Set signal directory paths of the x86 host and ARM SoC(NIC) at `mlfs_config.sh`. These paths are required for automated scripts to run experiments.
@@ -198,6 +207,14 @@ export X86_SIGNAL_PATH='/home/guest/LineFS_x86/scripts/signals' # Signal path in
 export ARM_SIGNAL_PATH='/home/guest/LineFS_ARM/scripts/signals' # Signal path in ARM SoC. It should be the same as $NIC_PROJ_DIR(in global.sh)/scripts/signals.
 ```
 
+Set source directory paths of the x86 host at `scripts/push_src.sh`. These paths are required for automated scripts to run experiments.
+
+```shell
+SRC_ROOT_PATH="/home/guest/LineFS_x86/"  # The last "/" should not be skipped.
+TARGET_ROOT_PATH="/home/guest/LineFS_ARM_src/"  # The last "/" should not be skipped.
+```
+
+### 6.2. Set hostnames
 
 Set hostnames for three x86 hosts and three SmartNICs. For example, If you are using three host machines, `host01`, `host02`, and `host03`, and three SmartNICs, `host01-nic`, `host02-nic`, and `host03-nic`, change `scripts/global.sh` as below.
 
@@ -215,6 +232,8 @@ NIC_2="host02-nic"
 NIC_3="host03-nic"
 ```
 
+### 6.3. Set network interfaces
+
 Set the names of network interfaces of x86 hosts and SmartNICs. You can use IP addresses instead of the names. The name of SmartNICs should be the name of RDMA interfaces. If hosts' IP addresses are mapped to `host01`, `host02`, and `host03`, and NICs' are mapped to `host01-nic-rdma`, `host02-nic-rdma`, and `host03-nic-rdma` in `/etc/hosts`, set `scripts/global.sh` as below.
 
 ```shell
@@ -229,12 +248,12 @@ NIC_2_INF="host02-nic-rdma"
 NIC_3_INF="host03-nic-rdma"
 ```
 
-### 6.2. Make root and a user can ssh to the x86 hosts and NICs without entering a password
+### 6.4. Make root and a user can ssh to the x86 hosts and NICs without entering a password
 
 To use scripts provided in this source code, you must be able to access all the machines and NICs via ssh without entering a password as a `root`.
 In other words, you need to copy the `root` account's public key to all the machines and NICs. It is optional but recommended to copy the public key of your account too if you don't want to execute all the scripts as a `root`. `ssh-copy-id` is a useful command to do it. Note that, if you don't have a key, generate one with `ssh-keygen`.
 
-### 6.3. Compile-time configurations
+### 6.5. Compile-time configurations
 
 Locations of compile-time configurations are as below.
 
@@ -254,7 +273,7 @@ Locations of compile-time configurations are as below.
   };
   ```
 
-### 6.4. Run-time configurations
+### 6.6. Run-time configurations
 
 `mlfs_config.sh` includes run-time configurations. To apply changes in the configurations you need to restart LineFS.
 

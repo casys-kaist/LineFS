@@ -114,10 +114,28 @@
 		grep Aggregated ${out_dir}/result_streamcluster.out | cut -d ':' -f 2 | tee ${out_dir}/result_cpu.txt
 	}
 
+	setConfig() {
+		(
+			cd "$PROJ_DIR" || exit
+			# For stable experiment.
+			sed -i 's/.*export LOG_PREFETCH_THRESHOLD.*/export LOG_PREFETCH_THRESHOLD=4096/g' mlfs_config.sh
+		)
+	}
+
+	restoreConfig() {
+		(
+			cd "$PROJ_DIR" || exit
+			sed -i 's/.*export LOG_PREFETCH_THRESHOLD.*/export LOG_PREFETCH_THRESHOLD=1024/g' mlfs_config.sh
+		)
+
+	}
+
 	# Main.
 	if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then # script is executed directly.
 		## Kill all iobench processes.
 		sudo pkill -9 iobench
+
+		setConfig
 
 		## Dump configs.
 		dumpConfigs $LOG_DIR/configs
@@ -145,6 +163,8 @@
 		printLatencyMicrobenchResults $ASSISE
 		printThroughputMicrobenchResults $LINEFS
 		printThroughputMicrobenchResults $ASSISE
+
+		restoreConfig
 	fi
 
 	exit

@@ -69,7 +69,6 @@ buildLineFS() {
 
 		echo "Copying source code to ARM directory."
 		sudo $PROJ_DIR/scripts/push_src.sh &>/dev/null # Copy source codes to ARM directory.
-		sleep 1
 	)
 	echo "Building NICFS in NIC ($NIC_1)."
 	# $SSH_NIC_1 "(cd ${NIC_PROJ_DIR}; make kernfs &> /dev/pts/${NIC_1_TTY})"
