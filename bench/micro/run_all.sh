@@ -69,13 +69,13 @@
 		out_dir="${LOG_DIR}/lat/${sys}"
 
 		echo ""
-		echo "############################################"
+		echo "##########################################################"
 		if [ "$sys" = "$LINEFS" ]; then
-			echo -e "#   Latency microbench results of \e[1;36m$sys\e[0m"	# red
+			echo -e "#   Latency microbench results of \e[1;36m$sys\e[0m in microseconds"
 		else
-			echo -e "#   Latency microbench results of \e[1;35m$sys\e[0m"	# red
+			echo -e "#   Latency microbench results of \e[1;35m$sys\e[0m in microseconds"
 		fi
-		echo "############################################"
+		echo "##########################################################"
 
 		echo "$sys solo:"
 		# cat results/lat/linefs/solo/sw/output.txt
@@ -99,13 +99,13 @@
 		out_dir="${LOG_DIR}/tput/${sys}"
 
 		echo ""
-		echo "###############################################"
+		echo "##########################################################"
 		if [ "$sys" = "$LINEFS" ]; then
-			echo -e "#   Throughput microbench results of \e[1;36m$sys\e[0m"	# red
+			echo -e "#   Throughput microbench results of \e[1;36m$sys\e[0m in MB/s"
 		else
-			echo -e "#   Throughput microbench results of \e[1;35m$sys\e[0m"	# red
+			echo -e "#   Throughput microbench results of \e[1;35m$sys\e[0m in MB/s"
 		fi
-		echo "###############################################"
+		echo "##########################################################"
 		echo "$sys solo:"
 		grep Aggregated ${out_dir}/result_solo.out | cut -d ':' -f 2 | tee ${out_dir}/result_solo.txt
 
@@ -150,19 +150,19 @@
 		runThroughputMicrobench $LINEFS streamcluster
 
 		## Build assise.
-		buildAssise
+#		buildAssise
 
 		## Run Assise.
-		runLatencyMicrobench $ASSISE
-		runLatencyMicrobench $ASSISE streamcluster
-		runThroughputMicrobench $ASSISE
-		runThroughputMicrobench $ASSISE streamcluster
+#		runLatencyMicrobench $ASSISE
+#		runLatencyMicrobench $ASSISE streamcluster
+#		runThroughputMicrobench $ASSISE
+#		runThroughputMicrobench $ASSISE streamcluster
 
 		## Print results.
 		printLatencyMicrobenchResults $LINEFS
-		printLatencyMicrobenchResults $ASSISE
+#		printLatencyMicrobenchResults $ASSISE
 		printThroughputMicrobenchResults $LINEFS
-		printThroughputMicrobenchResults $ASSISE
+#		printThroughputMicrobenchResults $ASSISE
 
 		restoreConfig
 	fi

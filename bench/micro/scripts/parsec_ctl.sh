@@ -87,7 +87,7 @@ measureParsec() {
 			cd ${PARSEC_DIR} || exit
 			./scripts/run.sh -b $PARSEC_BENCH -m short
 		) &>$parsec_out_path_host1 &
-		parsec_pid=$!
+		PARSEC_PID=$!
 	fi
 }
 
@@ -120,15 +120,22 @@ measureParsecAndPrint() {
 
 	measureParsec $parsec_out_file_name $is_local
 
-	echo "Waiting parsec finishes."
-	if [ $is_local = true ]; then
-		wait $parsec_pid
-	fi
-	# sleepAndCountdown 80 # Enough time for Parsec run.
-	echo "Parsec finished."
+	waitParsec $is_local
 
 	sleep 10
 	printStremaclusterExeTime $is_local
+}
+
+waitParsec() {
+	is_local=$1
+
+	echo "Waiting parsec finishes."
+	if [ "$is_local" = true ]; then
+		wait $PARSEC_PID
+	else
+		sleepAndCountdown 60 # Enough time for Parsec run.
+	fi
+	echo "Parsec finished."
 }
 
 killParsec() {
