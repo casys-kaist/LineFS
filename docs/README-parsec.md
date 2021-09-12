@@ -6,9 +6,6 @@
 	- [1.3. Build stremacluster](#13-build-stremacluster)
 	- [1.4. Run streamcluster individually in long mode](#14-run-streamcluster-individually-in-long-mode)
 	- [1.5. Run streamcluster individually in short mode](#15-run-streamcluster-individually-in-short-mode)
-- [2. stress-ng](#2-stress-ng)
-	- [2.1. Install stress-ng](#21-install-stress-ng)
-	- [2.2. Run stress-ng](#22-run-stress-ng)
 
 ## 1. streamcluster of PARSEC 3.0
 
@@ -46,19 +43,4 @@ scripts/run_parsec.sh -k # Kill running streamcluster processes.
 
 ```shell
 scripts/run_parsec.sh -s # Run streamcluster on all three machines.
-```
-
-## 2. stress-ng
-
-### 2.1. Install stress-ng
-
-```shell
-sudo apt update
-sudo apt install -y stress-ng
-```
-
-### 2.2. Run stress-ng
-
-```shell
-sudo stress-ng -c 16 -l 100 --taskset 0-15
 ```

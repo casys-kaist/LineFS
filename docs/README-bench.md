@@ -2,25 +2,26 @@
 
 - [1. Set TTY variables](#1-set-tty-variables)
 - [2. Pinning CPU cores](#2-pinning-cpu-cores)
-- [3. Microbenchmarks (throughput and latency)](#3-microbenchmarks-throughput-and-latency)
-	- [3.1. Build microbenchmarks](#31-build-microbenchmarks)
-	- [3.2. Run microbenchmarks](#32-run-microbenchmarks)
-	- [3.3. Check results](#33-check-results)
-- [4. Streamcluster performance interference experiment](#4-streamcluster-performance-interference-experiment)
-	- [4.1. Build throughput microbenchmark for interference experiment](#41-build-throughput-microbenchmark-for-interference-experiment)
-	- [4.2. Run interference experiment](#42-run-interference-experiment)
-	- [4.3. Check interference experiment result](#43-check-interference-experiment-result)
-- [5. LevelDB](#5-leveldb)
-	- [5.1. Required package](#51-required-package)
-	- [5.2. Build LevelDB](#52-build-leveldb)
-	- [5.3. Run LevelDB](#53-run-leveldb)
-- [6. Filebench](#6-filebench)
-	- [6.1. Rebuild LineFS without `BATCH_MEMCPY_LIST` flag](#61-rebuild-linefs-without-batch_memcpy_list-flag)
-	- [6.2. Build filebench](#62-build-filebench)
-	- [6.3. Disable ASLR](#63-disable-aslr)
-	- [6.4. Run filebench](#64-run-filebench)
-		- [6.4.1. Known issues](#641-known-issues)
-- [7. Experiments to be added](#7-experiments-to-be-added)
+- [3. Setup `streamcluster` benchmark](#3-setup-streamcluster-benchmark)
+- [4. Microbenchmarks (throughput and latency)](#4-microbenchmarks-throughput-and-latency)
+	- [4.1. Build microbenchmarks](#41-build-microbenchmarks)
+	- [4.2. Run microbenchmarks](#42-run-microbenchmarks)
+	- [4.3. Check results](#43-check-results)
+- [5. Streamcluster performance interference experiment](#5-streamcluster-performance-interference-experiment)
+	- [5.1. Build throughput microbenchmark for interference experiment](#51-build-throughput-microbenchmark-for-interference-experiment)
+	- [5.2. Run interference experiment](#52-run-interference-experiment)
+	- [5.3. Check interference experiment result](#53-check-interference-experiment-result)
+- [6. LevelDB](#6-leveldb)
+	- [6.1. Required package](#61-required-package)
+	- [6.2. Build LevelDB](#62-build-leveldb)
+	- [6.3. Run LevelDB](#63-run-leveldb)
+- [7. Filebench](#7-filebench)
+	- [7.1. Rebuild LineFS without `BATCH_MEMCPY_LIST` flag](#71-rebuild-linefs-without-batch_memcpy_list-flag)
+	- [7.2. Build filebench](#72-build-filebench)
+	- [7.3. Disable ASLR](#73-disable-aslr)
+	- [7.4. Run filebench](#74-run-filebench)
+		- [7.4.1. Known issues](#741-known-issues)
+- [8. Experiments to be added](#8-experiments-to-be-added)
 
 All the benchmarks run on Primary host machine unless otherwise specified.
 
@@ -63,16 +64,23 @@ Pinning CPU cores to a single NUMA node improves the performance of LineFS. You 
 - `scripts/global.sh`: Set `PINNING`. For example, set `PINNING="numactl -N0 -m0"` to use NUMA node 0 and set `PINNING="numactl -N1 -m1"` to use NUMA node 1.
 - `scripts/run_stress_ng.sh`: Set `taskset` argument. For example, if you want to run stress-ng on NUMA node 1 that includes 16 cores, from core 16 to core 31, set `--taskset 16-31`.
 
-## 3. Microbenchmarks (throughput and latency)
+## 3. Setup `streamcluster` benchmark
 
-### 3.1. Build microbenchmarks
+We use `streamcluster` of Parsec 3.0 as a CPU-intensive job that contending with benchmarks. Please refer to [README-parsec](README-parsec.md) to set up `streamcluster`.
+After confirming that `streamcluster` runs correctly, you don't need to run it manually. Instead, benchmark scripts provided by this repository will run `streamcluster` automatically.
+
+## 4. Microbenchmarks (throughput and latency)
+
+> This benchmarks are related to Figure 4 and Table 2 of LineFS paper.
+
+### 4.1. Build microbenchmarks
 
 ```shell
 cd bench/micro
 make -j`nproc`
 ```
 
-### 3.2. Run microbenchmarks
+### 4.2. Run microbenchmarks
 
 To run microbenchmarks:
 
@@ -120,7 +128,7 @@ fi
 
 To change benchmark options like I/O size and the file size, modify `bench/micro/scripts/run_iobench_lat.sh` for the latency benchmark and `bench/micro/scripts/run_iobench.sh` for the throughput benchmark.
 
-### 3.3. Check results
+### 4.3. Check results
 
 The results are printed to the terminal. You can print the results again with `bench/micro/run_all.sh` script. Enable only functions printing results and run it.
 
@@ -166,13 +174,17 @@ sw_16K_4procs_1round 1746.651
 sw_16K_8procs_1round 1785.106
 ```
 
-## 4. Streamcluster performance interference experiment
+> You will get better LineFS latency than around 210 us that described in the paper as we have optimized the latency.
 
-### 4.1. Build throughput microbenchmark for interference experiment
+## 5. Streamcluster performance interference experiment
+
+> This benchmarks are related to Figure 7 of LineFS paper.
+
+### 5.1. Build throughput microbenchmark for interference experiment
 
 You have to build microbenchmarks. Refer to [Build microbenchmarks](#31-build-microbenchmarks).
 
-### 4.2. Run interference experiment
+### 5.2. Run interference experiment
 
 ```shell
 cd bench/micro
@@ -181,7 +193,7 @@ cd bench/micro
 
 `run_interference_exp.sh` automatically configures, compiles, and deploys DFS, runs benchmarks, and prints the results.
 
-### 4.3. Check interference experiment result
+### 5.3. Check interference experiment result
 
 Results are prompted on the terminal. Here is an example of the result.
 
@@ -204,9 +216,11 @@ Replica  29.739
 Throughput: 631.580 MB
 ```
 
-## 5. LevelDB
+## 6. LevelDB
 
-### 5.1. Required package
+> This benchmarks are related to Figure 8 (a) of LineFS paper.
+
+### 6.1. Required package
 
 Install [snappy](https://github.com/google/snappy) package.
 
@@ -225,7 +239,7 @@ cmake -DBUILD_SHARED_LIBS=ON ../
 make && sudo make install
 ```
 
-### 5.2. Build LevelDB
+### 6.2. Build LevelDB
 
 * gcc 7 was used. (gcc 4.8 does not enable snappy compression.)
 
@@ -234,7 +248,7 @@ cd bench/leveldb
 make -j`nproc`
 ```
 
-### 5.3. Run LevelDB
+### 6.3. Run LevelDB
 
 ``` shell
 cd bench/leveldb/mlfs
@@ -264,13 +278,15 @@ You can select experiments to run in `bench/leveldb/mlfs/run_all.sh`.
 >```
 >
 
-## 6. Filebench
+## 7. Filebench
 
-### 6.1. Rebuild LineFS without `BATCH_MEMCPY_LIST` flag
+> This benchmarks are related to Figure 8 (b) of LineFS paper.
+
+### 7.1. Rebuild LineFS without `BATCH_MEMCPY_LIST` flag
 
 Currently, filebench is not patched to utilize batching RPC requests to the kernel worker (§4, §5.2.4). Disable it by commenting out the lines that set `BATCH_MEMCPY_LIST` flag in `kernfs/Makefile` and `libfs/Makefile`.
 
-### 6.2. Build filebench
+### 7.2. Build filebench
 
 >The distributed source code includes a modified `bench/filebench/Makefile.in` file for LibFS use. This file is automatically generated during the installation of filebench. (*Step 1* described in `bench/filebench/README`)
 If you regenerate autotool scripts (*Step 1*) due to some reasons, e.g. an `aclocal` version mismatch after OS upgrade, `Makefile.in` will be overwritten. In this case, you have to manually apply the LineFS related modifications on the original `Makefile.in` to a new `Makefile.in` file. You can easily identify the lines by searching the keyword "mlfs" or "MLFS" in the original `Makefile.in` file.
@@ -292,7 +308,7 @@ autoconf
 make  # Without -j option.
 ```
 
-### 6.3. Disable ASLR
+### 7.3. Disable ASLR
 
 Disabling ASLR is required.
 Related issue: [link](https://github.com/filebench/filebench/issues/112)
@@ -301,7 +317,7 @@ Related issue: [link](https://github.com/filebench/filebench/issues/112)
 echo 0 | sudo tee /proc/sys/kernel/randomize_va_space
 ```
 
-### 6.4. Run filebench
+### 7.4. Run filebench
 
 ```shell
 cd bench/filebench
@@ -312,7 +328,7 @@ cd bench/filebench
 
 You can select experiments to run by changing `bench/filebench/run_all.sh` script.
 
-#### 6.4.1. Known issues
+#### 7.4.1. Known issues
 
 - Filebench hangs at the end of the execution.
   - Printed message:
@@ -324,7 +340,7 @@ You can select experiments to run by changing `bench/filebench/run_all.sh` scrip
 
   - Workaround: Exit the program (`sudo pkill -9 filebench`). It doesn't affect the experiment results.
 
-## 7. Experiments to be added
+## 8. Experiments to be added
 
 - Performance interference experiment
 - Assise-opt
