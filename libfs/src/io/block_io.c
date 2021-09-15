@@ -90,7 +90,7 @@ void device_init(void)
 		}
 		// libfs logs starting from devid 4
 		else {
-			printf("Initializing dev[%d]\n", i);
+			// printf("Initializing dev[%d]\n", i);
 			g_bdev[i] = bdev_alloc_fast(i, 12);
 #if defined(NIC_OFFLOAD) && defined(NIC_SIDE)
                         // NIC RPC storage engine.

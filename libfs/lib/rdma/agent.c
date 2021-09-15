@@ -152,7 +152,7 @@ static void* server_loop(void *el_arg)
 	rdma_bind_addr(cm_id, (struct sockaddr *)&addr);
 	rdma_listen(cm_id, 100); /* backlog=10 is arbitrary */
 
-	printf("[RDMA-Server] Listening on port %d for connections. interrupt (^C) to exit.\n", atoi(port));
+	debug_print("[RDMA-Server] Listening on port %d for connections. interrupt (^C) to exit.\n", atoi(port));
 
 	if (low_lat) {
 	    event_loop(g_ec_low_lat, 0, 0, low_lat); /* do not exit upon disconnect */
@@ -225,7 +225,7 @@ int add_connection(char* ip, char *port, int app_type, int polling_loop, int soc
 
 	freeaddrinfo(addr);
 
-	printf("[RDMA-Client] Creating connection (status:pending) to %s:%s on sockfd %d\n", ip, port, sockfd);
+	debug_print("[RDMA-Client] Creating connection (status:pending) to %s:%s on sockfd %d\n", ip, port, sockfd);
 
 	return sockfd;
 }
@@ -256,12 +256,12 @@ static void on_pre_conn(struct rdma_cm_id *id)
 static void on_connection(struct rdma_cm_id *id)
 {
 	struct conn_context *ctx = (struct conn_context *)id->context;
-	printf("Connection established [sockfd=%d sock_type=%d]\n", ctx->sockfd,
+	debug_print("Connection established [sockfd=%d sock_type=%d]\n", ctx->sockfd,
 	       ctx->sock_type);
 
 	if(!ibw_cmpxchg(&ctx->mr_init_sent, 0, 1)) {
 		int i = create_message(id, MSG_INIT, num_mrs);
-		printf("SEND --> MSG_INIT [advertising %d memory regions]\n", num_mrs);
+		debug_print("SEND --> MSG_INIT [advertising %d memory regions]\n", num_mrs);
 		send_message(id, i);
 	}
 }
@@ -314,12 +314,12 @@ static void handle_completion(struct ibv_wc *wc, int low_lat)
 				ctx->app_type = ctx->msg_rcv[rcv_i]->meta.mr.addr;
 			ctx->remote_mr_total = ctx->msg_rcv[rcv_i]->meta.mr.length;
 			ctx->mr_init_recv = 1;
-			printf("RECV <-- MSG_INIT [remote node advertises %d memory regions]\n",
+			debug_print("RECV <-- MSG_INIT [remote node advertises %d memory regions]\n",
 						ctx->remote_mr_total);
 
 			if(!ibw_cmpxchg(&ctx->mr_init_sent, 0, 1)) {
 				int send_i = create_message(id, MSG_INIT, num_mrs);
-				printf("SEND --> MSG_INIT [advertising %d memory regions]\n", num_mrs);
+				debug_print("SEND --> MSG_INIT [advertising %d memory regions]\n", num_mrs);
 				send_message(id, send_i);
 			}
 

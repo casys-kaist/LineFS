@@ -270,12 +270,12 @@ void build_cq_channel(struct rdma_cm_id *id, int low_lat)
 				   poll_low_lat_cq_spinning_loop, &th_arg[i]);
 	    }
 
-	    printf("creating polling threads to poll completions (global-latency sensitive channel)\n");
+	    debug_print("creating polling threads to poll completions (global-latency sensitive channel)\n");
 
 	} else if (!g_cq_polling_thread) {
 	    g_cq_polling_thread = (pthread_t*)calloc(1, sizeof(pthread_t));
 	    pthread_create(g_cq_polling_thread, NULL, poll_cq_spinning_loop_global, NULL);
-	    printf("creating background global thread to poll completions (global-spinning)\n");
+	    debug_print("creating background global thread to poll completions (global-spinning)\n");
 	}
 	// else {
 	//         printf("creating background thread to poll completions (blocking)\n");
@@ -283,7 +283,7 @@ void build_cq_channel(struct rdma_cm_id *id, int low_lat)
 
 	// }
 #else
-	printf("creating background thread to poll completions (blocking)\n");
+	debug_print("creating background thread to poll completions (blocking)\n");
 	pthread_create(&ctx->cq_poller_thread, NULL, poll_cq_blocking_loop, ctx);
 #endif
 

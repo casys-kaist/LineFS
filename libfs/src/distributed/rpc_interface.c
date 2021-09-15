@@ -100,7 +100,7 @@ int tcp_setup_server (int *serv_sock_fd, int *cli_sock_fd)
     serv_addr.sin_family = AF_INET;
     serv_addr.sin_port = htons(TCP_PORT);
     fetch_intf_ip(mlfs_conf.x86_net_interface_name, g_self_ip);
-    mlfs_printf ("[NIC_OFFLOAD] g_self_ip: %s\n", g_self_ip);
+//     mlfs_printf ("TCP Server g_self_ip: %s\n", g_self_ip);
 
     if (inet_aton((char*)g_self_ip, &addr) == 0)
         panic ("Server: Fail to get ip address.\n");
@@ -189,7 +189,7 @@ void tcp_client_req_sb(int sock_fd, char *data, int dev)
     assert (sizeof(cmd) <= TCP_HDR_SIZE);
     tcp_send_client_req(sock_fd, cmd, data, sizeof(struct disk_superblock));
     sb = (struct disk_superblock*)data;
-    mlfs_printf("Client received resp: superblock: dev %d size %lu nblocks %lu ninodes %u nlog %lu\n"
+    pr_setup("Client received resp: superblock: dev %d size %lu nblocks %lu ninodes %u nlog %lu\n"
                     "\t[inode start %lu bmap start %lu datablock start %lu log start %lu]\n",
                     dev,
                     sb->size, 
@@ -287,7 +287,7 @@ int init_rpc(struct mr_context *regions, int n_regions, char *listen_port, signa
 
 	peer_init();
 
-	printf("cluster settings:\n");
+	pr_setup("cluster settings:");
 	//create array containing all peers
 	for(int i=0; i<g_n_nodes; i++) {
 		if(i<g_n_hot_rep) {
@@ -322,7 +322,7 @@ int init_rpc(struct mr_context *regions, int n_regions, char *listen_port, signa
 			g_kernfs_id = g_kernfs_peers[i]->id;
 		}
 
-		printf("--- node %d - ip:%s\n", i, g_peers[i]->ip);
+		pr_setup("--- node %d - ip:%s", i, g_peers[i]->ip);
 	}
 
 	//NOTE: disable this check if we want to allow external clients (i.e. no local shared area)
@@ -525,7 +525,7 @@ int init_rpc(struct mr_context *regions, int n_regions, char *listen_port, signa
 #endif
 
 	//sleep(4);
-	mlfs_printf("%s\n", "MLFS cluster initialized");
+	printf("%s\n", "Connected to all SharedFS/NICFS instances.");
 
 		//gettimeofday(&start_time, NULL);
 }
@@ -1654,7 +1654,7 @@ int rpc_bootstrap(int sockfd)
 #else
 	snprintf(msg->data, MAX_SIGNAL_BUF, "|bootstrap |%u", getpid());
 #endif
-	mlfs_printf("DEBUG sockfd %d g_rpc_socks[sockfd] %p, msg '%s'\n", sockfd, g_rpc_socks[sockfd], msg->data);
+	// mlfs_printf("DEBUG sockfd %d g_rpc_socks[sockfd] %p, msg '%s'\n", sockfd, g_rpc_socks[sockfd], msg->data);
 	msg->id = generate_rpc_seqn(g_rpc_socks[sockfd]);
         pr_rpc("send: %s seqn=%lu sock=%d", msg->data, msg->id, sockfd);
 

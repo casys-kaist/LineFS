@@ -182,7 +182,7 @@ void init_log(int id)
 
 #endif
 
-	printf("init log[%d] dev %d start_blk %lu end %lu\n", id, g_log_dev,
+	printf("Initialized log[%d] dev %d start_blk %lu end %lu\n", id, g_log_dev,
 			g_fs_log[dev]->start_blk, g_fs_log[dev]->size);
 }
 
@@ -1521,7 +1521,7 @@ void signal_callback(struct app_context *msg)
 		uint32_t peer_id;
 		sscanf(msg->data, "|%s |%u", cmd_hdr, &peer_id);
 		g_self_id = peer_id;
-		mlfs_printf("Assigned LibFS ID=%u\n", g_self_id);
+		printf("Assigned LibFS ID=%u\n", g_self_id);
 	}
 #ifndef MASTER
 	//slave callback

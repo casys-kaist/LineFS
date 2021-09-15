@@ -493,7 +493,7 @@ static void mlfs_rpc_init(void) {
 	init_log(g_self_id);
 
 	for (int i = 0; i < n_regions; i++)
-		mlfs_printf("libfs_id=%d mrs[%d] type %d, addr 0x%lx - 0x%lx, "
+		pr_setup("libfs_id=%d mrs[%d] type %d, addr 0x%lx - 0x%lx, "
 			    "length %lu(%lu MB)\n",
 			    g_self_id, i, mrs[i].type, mrs[i].addr,
 			    mrs[i].addr + mrs[i].length, mrs[i].length,

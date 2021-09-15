@@ -515,7 +515,7 @@ void handle_tcp_client_req(int cli_sock_fd)
 
 			switch (cmd_hdr[0]) {
 			case 's': // sb : Request superblock.
-				printf("Server: cmd_hdr is s\n");
+				mlfs_info("Server: cmd_hdr is s\n");
 
 				sscanf(buf, "|%s |%d|", cmd_hdr, &dev);
 
@@ -962,8 +962,8 @@ void init_nic_fs(void)
 		default:
 			break;
 		}
-		printf("mrs[%d] type %d, addr 0x%lx - 0x%lx, length %lu(%lu "
-		       "MB)\n",
+		pr_setup("mrs[%d] type %d, addr 0x%lx - 0x%lx, length %lu(%lu "
+		       "MB)",
 		       i, mrs[i].type, mrs[i].addr, mrs[i].addr + mrs[i].length,
 		       mrs[i].length, mrs[i].length / 1024 / 1024);
 	}
@@ -1043,7 +1043,7 @@ void init_nic_fs(void)
 			// We don't need this information.
 			break;
 		}
-		printf("remote_mrs[%d] type=%d, addr=0x%lx - 0x%lx, "
+		pr_setup("remote_mrs[%d] type=%d, addr=0x%lx - 0x%lx, "
 		       "length=%lu\n",
 		       i, remote_mrs[i].type, remote_mrs[i].addr,
 		       remote_mrs[i].addr + remote_mrs[i].length,
@@ -1436,7 +1436,7 @@ void signal_callback(struct app_context *msg)
 		bs_arg->sockfd = msg->sockfd;
 		bs_arg->seqn = msg->id;
 		bs_arg->libfs_rate_limit_addr = libfs_rate_limit_addr;
-		mlfs_printf("handling bootstrap: %s\n", msg->data);
+		// mlfs_printf("handling bootstrap: %s\n", msg->data);
 		thpool_add_work(thread_pool_misc, handle_bootstrap,
 				(void *)bs_arg);
 

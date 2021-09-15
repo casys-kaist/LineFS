@@ -56,7 +56,6 @@ void peer_init()
 	//pthread_mutexattr_init(&attr);
 	//pthread_mutex_init(peer_bitmap_mutex, NULL);
 #ifdef LIBFS
-	printf("INIT fetch seqn to 0\n");
 	init_fetch_seqn();
 #endif
 }
@@ -140,7 +139,7 @@ void add_peer_socket(int sockfd, int sock_type)
 
 	unlock_peer_access();
 
-	mlfs_printf("Established connection: peer_id=%d ip=%s sock=%d "
+	pr_setup("Established connection: peer_id=%d ip=%s sock=%d "
 		    "sock_type=%d peer:%p\n",
 		    peer->id, peer->ip, psock->fd, psock->type,
 		    g_rpc_socks[psock->fd]->peer);
@@ -337,7 +336,7 @@ void register_peer_log(struct peer_id *peer, int find_id)
 		idx = peer->id;
 	}
 
-	mlfs_printf("assigning peer (ip: %s pid: %u) to log id %d\n", peer->ip, peer->pid, idx);
+	pr_setup("assigning peer (ip: %s pid: %u) to log id %d", peer->ip, peer->pid, idx);
 	peer->id = idx;
         set_peer_id(peer);
 	g_peers[peer->id] = peer;

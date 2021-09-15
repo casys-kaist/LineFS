@@ -1734,7 +1734,7 @@ void init_fs(void)
 			default:
 				break;
 		}
-                printf("mrs[%d] type %d, addr 0x%lx - 0x%lx, length %lu(%lu MB)\n",
+                pr_setup("mrs[%d] type %d, addr 0x%lx - 0x%lx, length %lu(%lu MB)",
                        i, mrs[i].type, mrs[i].addr, mrs[i].addr + mrs[i].length,
                        mrs[i].length, mrs[i].length / 1024 / 1024);
         }
