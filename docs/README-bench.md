@@ -9,19 +9,25 @@
 	- [4.3. Check results](#43-check-results)
 - [5. Streamcluster performance interference experiment](#5-streamcluster-performance-interference-experiment)
 	- [5.1. Build throughput microbenchmark for interference experiment](#51-build-throughput-microbenchmark-for-interference-experiment)
-	- [5.2. Run interference experiment](#52-run-interference-experiment)
+	- [5.2. Run interference experiment script](#52-run-interference-experiment-script)
 	- [5.3. Check interference experiment result](#53-check-interference-experiment-result)
-- [6. LevelDB](#6-leveldb)
-	- [6.1. Required package](#61-required-package)
-	- [6.2. Build LevelDB](#62-build-leveldb)
-	- [6.3. Run LevelDB](#63-run-leveldb)
-- [7. Filebench](#7-filebench)
-	- [7.1. Rebuild LineFS without `BATCH_MEMCPY_LIST` flag](#71-rebuild-linefs-without-batch_memcpy_list-flag)
-	- [7.2. Build filebench](#72-build-filebench)
-	- [7.3. Disable ASLR](#73-disable-aslr)
-	- [7.4. Run filebench](#74-run-filebench)
-		- [7.4.1. Known issues](#741-known-issues)
-- [8. Experiments to be added](#8-experiments-to-be-added)
+- [6. Interference by Kernel worker's copying methods](#6-interference-by-kernel-workers-copying-methods)
+	- [6.1. Run copying method experiment script](#61-run-copying-method-experiment-script)
+	- [6.2. Check copying method experiment result](#62-check-copying-method-experiment-result)
+- [7. LevelDB](#7-leveldb)
+	- [7.1. Required package](#71-required-package)
+	- [7.2. Build LevelDB](#72-build-leveldb)
+	- [7.3. Run LevelDB](#73-run-leveldb)
+	- [7.4. Check LevelDB result](#74-check-leveldb-result)
+	- [7.5. LevelDB - Known issues](#75-leveldb---known-issues)
+- [8. Filebench](#8-filebench)
+	- [8.1. Rebuild LineFS without `BATCH_MEMCPY_LIST` flag](#81-rebuild-linefs-without-batch_memcpy_list-flag)
+	- [8.2. Build filebench](#82-build-filebench)
+	- [8.3. Disable ASLR](#83-disable-aslr)
+	- [8.4. Run filebench](#84-run-filebench)
+	- [8.5. Filebench - Known issues](#85-filebench---known-issues)
+- [9. Availability experiment](#9-availability-experiment)
+- [10. Troubleshooting](#10-troubleshooting)
 
 All the benchmarks run on Primary host machine unless otherwise specified.
 
@@ -184,7 +190,7 @@ sw_16K_8procs_1round 1785.106
 
 You have to build microbenchmarks. Refer to [Build microbenchmarks](#31-build-microbenchmarks).
 
-### 5.2. Run interference experiment
+### 5.2. Run interference experiment script
 
 ```shell
 cd bench/micro
@@ -216,11 +222,45 @@ Replica  29.739
 Throughput: 631.580 MB
 ```
 
-## 6. LevelDB
+## 6. Interference by Kernel worker's copying methods
+
+This experiment is related to Figure 6 of the paper. It compares the interference by Kernel worker with different copying methods.
+
+### 6.1. Run copying method experiment script
+
+```shell
+cd bench/micro
+./run_memcpy_exp.sh
+```
+
+`run_memcpy_exp.sh` automatically configures, compiles, and deploys DFS, runs benchmarks, and prints the results. You can see the real-time throughput of LineFS on the terminal.
+
+### 6.2. Check copying method experiment result
+
+The result including `streamcluster` execution time and throughput of the microbenchmark is printed to the terminal as in the example below.
+
+```shell
+cpu_memcpy
+Streamcluster_exe_time(Replica) 32.040
+Throughput(MB/s) 1428.11
+dma_polling
+Streamcluster_exe_time(Replica) 27.082
+Throughput(MB/s) 1869.03
+dma_polling_batching
+Streamcluster_exe_time(Replica) 26.540
+Throughput(MB/s) 1812.73
+no_copy
+Streamcluster_exe_time(Replica) 24.335
+Throughput(MB/s) 2102.21
+```
+
+> `DMA-interrupt` is an experimental feature and it occasionally incurs a kernel error that requires a system reboot. It is currently commented out to prevent our testbed from failure.
+
+## 7. LevelDB
 
 > This benchmarks are related to Figure 8 (a) of LineFS paper.
 
-### 6.1. Required package
+### 7.1. Required package
 
 Install [snappy](https://github.com/google/snappy) package.
 
@@ -239,7 +279,7 @@ cmake -DBUILD_SHARED_LIBS=ON ../
 make && sudo make install
 ```
 
-### 6.2. Build LevelDB
+### 7.2. Build LevelDB
 
 * gcc 7 was used. (gcc 4.8 does not enable snappy compression.)
 
@@ -248,18 +288,16 @@ cd bench/leveldb
 make -j`nproc`
 ```
 
-### 6.3. Run LevelDB
+### 7.3. Run LevelDB
 
 ``` shell
 cd bench/leveldb/mlfs
 ./run_all.sh
 ```
 
-`bench/leveldb/run_all.sh` automatically compiles and deploys DFS, runs LevelDB, and prints the results.
+`bench/leveldb/run_all.sh` automatically compiles and deploys DFS, runs LevelDB, and prints the results. It measures the LevelDB latencies when host CPU is busy.
 
-You can select experiments to run in `bench/leveldb/mlfs/run_all.sh`.
-
-> Sometimes, LevelDB run with `fillrandom` or `fillsync` workload hangs while printing a result histogram. You can run the workload again by changing `bench/leveldb/mlfs/run_bench_histo.sh`. For example,
+>You can select LevelDB workloads to run in `bench/leveldb/mlfs/run_bench_histo.sh`. For example, you can run only `fillrandom` and `fillsync` workloads after changing the file as below:
 >
 >from
 >
@@ -278,15 +316,58 @@ You can select experiments to run in `bench/leveldb/mlfs/run_all.sh`.
 >```
 >
 
-## 7. Filebench
+### 7.4. Check LevelDB result
+
+The results are prompted on the terminal. It includes the latencies of six workloads. Here is an example of the result collected on our testbed.
+
+```shell
+========== LevelDB results ============
+linefs running with streamcluster
+Latency(micros/op)
+readseq 1.183
+readrandom 6.679
+readhot 2.359
+fillseq 13.735
+fillrandom 72.078
+fillsync 75.049
+
+assise running with streamcluster
+Latency(micros/op)
+readseq 1.133
+readrandom 6.410
+readhot 2.356
+fillseq 22.618
+fillrandom 96.544
+fillsync 98.450
+=======================================
+```
+
+### 7.5. LevelDB - Known issues
+
+- Sometimes, LevelDB does not run correctly prompting the following message.
+  - Printed message:
+
+    ```shell
+    put error: Corruption: bad block type
+    ```
+
+    or
+
+    ```shell
+    put error: Corruption: corrupted compressed block contents
+    ```
+
+  - Workaround: Rerun the benchmark. You can rerun only the failed workload.
+
+## 8. Filebench
 
 > This benchmarks are related to Figure 8 (b) of LineFS paper.
 
-### 7.1. Rebuild LineFS without `BATCH_MEMCPY_LIST` flag
+### 8.1. Rebuild LineFS without `BATCH_MEMCPY_LIST` flag
 
 Currently, filebench is not patched to utilize batching RPC requests to the kernel worker (§4, §5.2.4). Disable it by commenting out the lines that set `BATCH_MEMCPY_LIST` flag in `kernfs/Makefile` and `libfs/Makefile`.
 
-### 7.2. Build filebench
+### 8.2. Build filebench
 
 >The distributed source code includes a modified `bench/filebench/Makefile.in` file for LibFS use. This file is automatically generated during the installation of filebench. (*Step 1* described in `bench/filebench/README`)
 If you regenerate autotool scripts (*Step 1*) due to some reasons, e.g. an `aclocal` version mismatch after OS upgrade, `Makefile.in` will be overwritten. In this case, you have to manually apply the LineFS related modifications on the original `Makefile.in` to a new `Makefile.in` file. You can easily identify the lines by searching the keyword "mlfs" or "MLFS" in the original `Makefile.in` file.
@@ -308,7 +389,7 @@ autoconf
 make  # Without -j option.
 ```
 
-### 7.3. Disable ASLR
+### 8.3. Disable ASLR
 
 Disabling ASLR is required.
 Related issue: [link](https://github.com/filebench/filebench/issues/112)
@@ -317,7 +398,7 @@ Related issue: [link](https://github.com/filebench/filebench/issues/112)
 echo 0 | sudo tee /proc/sys/kernel/randomize_va_space
 ```
 
-### 7.4. Run filebench
+### 8.4. Run filebench
 
 ```shell
 cd bench/filebench
@@ -328,7 +409,7 @@ cd bench/filebench
 
 You can select experiments to run by changing `bench/filebench/run_all.sh` script.
 
-#### 7.4.1. Known issues
+### 8.5. Filebench - Known issues
 
 - Filebench hangs at the end of the execution.
   - Printed message:
@@ -340,8 +421,16 @@ You can select experiments to run by changing `bench/filebench/run_all.sh` scrip
 
   - Workaround: Exit the program (`sudo pkill -9 filebench`). It doesn't affect the experiment results.
 
-## 8. Experiments to be added
+## 9. Availability experiment
 
-- Performance interference experiment
-- Assise-opt
-- Diverse copying method experiment
+For the availability experiment (Figure 10 of the paper), refer to [README-availability-exp.md](README-availability-exp.md).
+
+## 10. Troubleshooting
+
+Prob) The following message is prompted on NIC.
+
+```shell
+./run.sh: line 30: ./kernfs: cannot execute binary file: Exec format error
+```
+
+Sol) NICFS is not compiled. Compile it.

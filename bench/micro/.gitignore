@@ -11,3 +11,5 @@ membench
 outputs
 results
 out_all
+out_interfere
+out_memcpy

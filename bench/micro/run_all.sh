@@ -119,6 +119,12 @@
 			cd "$PROJ_DIR" || exit
 			# For stable experiment.
 			sed -i 's/.*export LOG_PREFETCH_THRESHOLD.*/export LOG_PREFETCH_THRESHOLD=4096/g' mlfs_config.sh
+			sed -i 's/.*export THREAD_NUM_DIGEST_HOST_MEMCPY.*/export THREAD_NUM_DIGEST_HOST_MEMCPY=8/g' mlfs_config.sh
+		)
+		(
+			cd "$NIC_SRC_DIR" || exit
+			sed -i 's/.*export LOG_PREFETCH_THRESHOLD.*/export LOG_PREFETCH_THRESHOLD=4096/g' mlfs_config.sh
+			sed -i 's/.*export THREAD_NUM_DIGEST_HOST_MEMCPY.*/export THREAD_NUM_DIGEST_HOST_MEMCPY=8/g' mlfs_config.sh
 		)
 	}
 
@@ -127,7 +133,10 @@
 			cd "$PROJ_DIR" || exit
 			sed -i 's/.*export LOG_PREFETCH_THRESHOLD.*/export LOG_PREFETCH_THRESHOLD=1024/g' mlfs_config.sh
 		)
-
+		(
+			cd "$NIC_SRC_DIR" || exit
+			sed -i 's/.*export LOG_PREFETCH_THRESHOLD.*/export LOG_PREFETCH_THRESHOLD=1024/g' mlfs_config.sh
+		)
 	}
 
 	# Main.
@@ -150,19 +159,19 @@
 		runThroughputMicrobench $LINEFS streamcluster
 
 		## Build assise.
-#		buildAssise
+		# buildAssise
 
 		## Run Assise.
-#		runLatencyMicrobench $ASSISE
-#		runLatencyMicrobench $ASSISE streamcluster
-#		runThroughputMicrobench $ASSISE
-#		runThroughputMicrobench $ASSISE streamcluster
+		# runLatencyMicrobench $ASSISE
+		# runLatencyMicrobench $ASSISE streamcluster
+		# runThroughputMicrobench $ASSISE
+		# runThroughputMicrobench $ASSISE streamcluster
 
 		## Print results.
 		printLatencyMicrobenchResults $LINEFS
-#		printLatencyMicrobenchResults $ASSISE
+		# printLatencyMicrobenchResults $ASSISE
 		printThroughputMicrobenchResults $LINEFS
-#		printThroughputMicrobenchResults $ASSISE
+		# printThroughputMicrobenchResults $ASSISE
 
 		restoreConfig
 	fi

@@ -62,26 +62,27 @@ SSH_NIC_3="ssh $NIC_3_INF"
 buildLineFS() {
 	echo "Building LineFS."
 	(
-		cd "$PROJ_DIR" || exit
+		cd "$PROJ_DIR" || { echo "Project root directory not found."; exit 1; }
 
 		echo "Building Kernel Worker and LibFS in host ($HOST_1)."
-		make kernfs-linefs &>/dev/null && make libfs-linefs &>/dev/null || exit 1
+		make kernfs-linefs &>/dev/null && make libfs-linefs &>/dev/null || { echo "Building LineFS failed."; exit 1; }
 
 		echo "Copying source code to ARM directory."
 		sudo $PROJ_DIR/scripts/push_src.sh &>/dev/null # Copy source codes to ARM directory.
-	)
+		rm -rf $NIC_SRC_DIR/kernfs/buildarm # Workaround: delete buildarm directory manually. 'make clean' over ssh to NIC1 does not work.
+	) || exit 1
 	echo "Building NICFS in NIC ($NIC_1)."
-	# $SSH_NIC_1 "(cd ${NIC_PROJ_DIR}; make kernfs &> /dev/pts/${NIC_1_TTY})"
-	$SSH_NIC_1 "(echo Building NICFS. &> /dev/pts/${NIC_1_TTY}; cd ${NIC_PROJ_DIR}; make kernfs-linefs &> /dev/null; echo Done. &> /dev/pts/${NIC_1_TTY})"
+	# $SSH_NIC_1 "(ho Building NICFS. &> /dev/pts/${NIC_1_TTY}; cd ${NIC_PROJ_DIR}; make kernfs-linefs &> /dev/null; echo Done. &> /dev/pts/${NIC_1_TTY})"
+	$SSH_NIC_1 "(echo Building NICFS. &> /dev/pts/${NIC_1_TTY}; cd ${NIC_PROJ_DIR}; make kernfs-linefs &> /dev/pts/${NIC_1_TTY}; echo Done. &> /dev/pts/${NIC_1_TTY})" || { echo "Building NICFS failed."; exit 1; }
 	echo Building LineFS done.
 }
 
 buildAssise() {
 	echo "Building Assise."
 	(
-		cd "$PROJ_DIR" || exit
-		make kernfs-assise &>/dev/null && make libfs-assise &>/dev/null || exit 1
-	)
+		cd "$PROJ_DIR" || { echo "Project root directory not found."; exit 1; }
+		make kernfs-assise &>/dev/null && make libfs-assise &>/dev/null || { echo "Building Assise failed."; exit 1; }
+	) || exit 1
 	echo "Building Assise done."
 }
 

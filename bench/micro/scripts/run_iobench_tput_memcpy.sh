@@ -9,16 +9,17 @@
     # echo "NIC project dir path   : $NIC_PROJ_DIR"
     # echo "Parsec dir path (host) : $PARSEC_DIR"
 
-    NPROC="1"
+    NPROC="4"
     OUTPUT_DIR="./outputs/tput"
     RESULT_DIR="./results/tput"
     # TOTAL_FILE_SIZE="12288" # 12G
-    TOTAL_FILE_SIZE="14336" # 16G
-    # TOTAL_FILE_SIZE="16384" # 16G
+    # TOTAL_FILE_SIZE="14336" # 14G
+    TOTAL_FILE_SIZE="16384" # 16G
     # TOTAL_FILE_SIZE="36864" # 36G
     IOSIZE="16K"
-    TYPE="assise"
+    TYPE="linefs"
     ACTION="run"
+    MAKE_PRIVATE_DIR="true"
 
     exe_proc() {
         # Arguments
@@ -69,7 +70,7 @@
         echo "All processes are ready."
         sleep 1
 
-        is_local=true
+        is_local=false
 
         # Start streamcluster
         measureParsec "${iosize}.p${proc_num}" $is_local
@@ -87,14 +88,22 @@
         sleep 1 # Wait for the replica's streamcluster.
         printStremaclusterExeTime $is_local
 
+        echo "Send signal to quit benchmark processes."
+        # ./iobench -p
+        ../../utils/shm_tool/shm -p /iobench_shm -w 0 &>/dev/null
+
+        # wait for all pids.
+        echo "Waiting for the benchmark processes to exit."
+        for pid in ${pids[*]}; do
+            wait $pid
+        done
+
         # grep results and write to result file.
         result_file="${RESULT_DIR}/${iosize}.p${proc_num}"
         echo "result_file: $result_file"
         grep -hc "synchronous digest" $OUTPUT_DIR/${iosize}.p${proc_num}.id${i} >>$result_file
         grep -h "Throughput" $OUTPUT_DIR/${iosize}.p${proc_num}.id* >>$result_file
         cat "$result_file"
-
-        # Suspended IObenches will be killed by run_interference_exp.sh
     }
 
     print_result() {
@@ -106,29 +115,39 @@
     }
 
     print_usage() {
-        echo "Usage: $0 [ -t linefs|assise ] [ -p dir_path ]
-    -t : system type <linefs|assise> (assise is default)
-    -p : print result of <dir_path>"
+        echo "Usage: $0 [ -n ] [ -p dir_path ] [ -r ]
+    -n : Do not formatting device.
+    -p : Print result of <dir_path>.
+    -r : Prepare for no-copy run."
+    }
+
+    prepare_nocopy_exp() {
+		# Format device and mkdir private directories before configuring LineFS to NO-COPY.
+		# It is required because LineFS cannot create private directories with the NO-COPY option.
+		reset_kernfs "nic"
+		# Make private directories
+		echo "Make private directories for each processes. (num_procs = 4)"
+		(cd "${PROJ_DIR}/libfs/tests" && sudo ./run.sh ./mkdir_test &>/dev/null)
     }
 
     # Main.
     if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then # script is executed directly.
 
         # Parse command options.
-        while getopts "t:p:?h" opt; do
+        while getopts "np:r?h" opt; do
             case $opt in
+            n)
+                MAKE_PRIVATE_DIR="false"
+                ;;
             p)
                 OUTPUT_DIR=$OPTARG
                 RESULT_DIR=$OPTARG
                 ACTION="print"
                 echo "Print mode. OPTARG:$OPTARG OUTPUT_DIR:$OUTPUT_DIR RESULT_DIR:$RESULT_DIR"
                 ;;
-            t)
-                TYPE=$OPTARG
-                if [ "$TYPE" != "linefs" ] && [ "$TYPE" != "assise" ]; then
-                    print_usage
-                    exit 2
-                fi
+            r)
+                prepare_nocopy_exp
+                exit
                 ;;
             h | ?)
                 print_usage
@@ -144,9 +163,6 @@
         elif [ "$TYPE" = "linefs" ]; then
             OUTPUT_DIR=${OUTPUT_DIR}/linefs
             RESULT_DIR=${RESULT_DIR}/linefs
-        else
-            OUTPUT_DIR=${OUTPUT_DIR}/assise
-            RESULT_DIR=${RESULT_DIR}/assise
         fi
 
         # print mode.
@@ -178,16 +194,13 @@
         fi
 
         # execute.
-        if [ "$TYPE" = "linefs" ]; then
+        if [ "$MAKE_PRIVATE_DIR" = "true" ]; then
             reset_kernfs "nic"
-        elif [ "$TYPE" = "assise" ]; then
-            reset_kernfs "hostonly"
         else
-            echo "Unknown system."
-            exit 1
+            reset_kernfs_without_formatting "nic"
         fi
 
-        if [ "$NPROC" -gt 1 ]; then
+        if [ "$NPROC" -gt 1 ] && [ "$MAKE_PRIVATE_DIR" = "true" ]; then
             echo "Make private directories for each processes. (num_procs = $NPROC)"
             (cd ../../libfs/tests && sudo ./run.sh ./mkdir_test &>/dev/null)
             echo "Done."
@@ -202,14 +215,7 @@
         print_result
 
         # shutdown kernfs.
-        if [ "$TYPE" = "linefs" ]; then
-            kill_kernfs "nic"
-        elif [ "$TYPE" = "assise" ]; then
-            kill_kernfs "hostonly"
-        else
-            echo "Unknown system."
-            exit 1
-        fi
+        kill_kernfs "nic"
 
         echo "Done."
     fi

@@ -1812,6 +1812,8 @@ fetch_log : {
 	       &fl_arg->fetch_log_done_addr, &fl_arg->fsync,
 	       &fl_arg->fsync_ack_addr);
 
+	// mlfs_printf("fsync request received seqn=%lu ack_addr=0x%lx\n", fl_arg->seqn, fl_arg->fsync_ack_addr);
+
 #ifdef NO_PIPELINING
 	thpool_add_work(thread_pool_log_fetch,
 			fetch_log_from_primary_nic_dram_bg,

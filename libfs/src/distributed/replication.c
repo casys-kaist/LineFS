@@ -872,12 +872,27 @@ static void send_log_prefetch_msg(void *arg)
 	    pf_arg->n_prefetch_blk, g_sync_ctx[0]->base_addr, pf_arg->reset_meta,
 	    pf_arg->is_fsync, (uintptr_t)pf_arg->fsync_ack_flag);
 
+//     if (pf_arg->fsync_ack_flag) {
+// 	    struct fsync_acks *acks =
+// 		    (struct fsync_acks *)pf_arg->fsync_ack_flag;
+// 	    mlfs_printf("FSYNC request: seqn=%lu fsync_ack_flag=%p(%lx) "
+// 			"replica1=%p(%hhu) replica2=%p(%hhu))\n",
+// 			seqn, pf_arg->fsync_ack_flag, *pf_arg->fsync_ack_flag,
+// 			&acks->replica1, acks->replica1, &acks->replica2,
+// 			acks->replica2);
+//     } else {
+// 	    mlfs_printf("PREFETCH request: seqn=%lu\n", seqn);
+//     }
+//     fflush(stdout);
+//     fflush(stderr);
+
     rpc_forward_msg_no_seqn(sockfd, msg);
     // rpc_forward_msg_no_seqn_sync(sockfd, msg);
 
-    if (!(seqn % 500)) {
-	    printf("Prefetch requested. seqn=%lu\n", seqn);
-    }
+    // Print progress roughly.
+//     if (!(seqn % 500)) {
+// 	    printf("Prefetch requested. seqn=%lu\n", seqn);
+//     }
 
     mlfs_free(arg);
 }
@@ -896,6 +911,8 @@ static void await_fsync_acks(uint64_t *fsync_ack_flag)
 		 "replica2=%p(%hhu))",
 		 fsync_ack_flag, *fsync_ack_flag, &acks->replica1,
 		 acks->replica1, &acks->replica2, acks->replica2);
+	// fflush(stdout);
+	// fflush(stderr);
 	START_TIMER(evt_wait_fsync_ack);
 
 	while (1) {

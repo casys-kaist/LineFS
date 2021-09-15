@@ -99,7 +99,7 @@ threadpool init_copy_done_ack_handle_thpool(void)
 static int manage_fsync_ack_th_num = 2;
 threadpool init_manage_fsync_ack_thpool(int libfs_id)
 {
-	int th_num = manage_fsync_ack_th_num; // We requried at least 2 threads:
+	int th_num = manage_fsync_ack_th_num; // We required at least 2 threads:
 					      // One is for busy waiting on
 					      // fsync and the other is for
 					      // setting bits.
@@ -347,6 +347,7 @@ void copy_log_to_last_replica_bg(void *arg)
 	// NOTE fsync_ack_addr is 0 on rotation.
 	if (c_arg->fsync && c_arg->fsync_ack_addr &&
 	    all_previous_log_persisted_bits_set(rctx, c_arg->seqn)) {
+		// mlfs_printf("No threading fsync seqn=%lu\n", c_arg->seqn);
 		send_fsync_ack(c_arg->libfs_id, c_arg->fsync_ack_addr);
 	} else {
 		// Next pipeline stage 2: Send_fsync_ack.
@@ -563,8 +564,6 @@ all_previous_log_persisted_bits_set(struct replication_context *rctx,
 	ret = (n_bit_set == (int)(fsync_seqn - start_seqn));
 
 	// Reset bitmap and start_seqn.
-	// TODO It assumes no larger seqn than fsync_seqn arrives at this point.
-	// Multi-threading in LibFS can lead to this situation.
 	if (ret) {
 		// mlfs_printf("fsync_seqn matched: libfs_id=%d fsync_seqn=%lu  "
 		//             "start_seqn=%lu->%lu n_bit_set=%d\n",
@@ -573,13 +572,13 @@ all_previous_log_persisted_bits_set(struct replication_context *rctx,
 
 		pthread_spin_lock(&rctx->log_persisted_bitmap_lock);
 
-		bitmap_clear(bitmap, 0, fsync_seqn - start_seqn);
+		// sizeof(uint8_t)*8: enough length of bits. XXX: Is it enough length?
+		bitmap_shift_right(bitmap, bitmap, fsync_seqn - start_seqn + 1,
+				   fsync_seqn - start_seqn + 1 +
+					   sizeof(uint8_t) * 8);
+
 		rctx->log_persisted_bitmap_start_seqn = fsync_seqn + 1;
-#ifdef CHECK_SANITY
-		n_bit_set = bitmap_weight(bitmap, COPY_NEXT_BITMAP_SIZE_IN_BIT);
-		mlfs_printf("[SANITY_CHECK] n_bit_set=%d\n", n_bit_set);
-		mlfs_assert(n_bit_set == 0);
-#endif
+
 		pthread_spin_unlock(&rctx->log_persisted_bitmap_lock);
 	}
 	return ret;
@@ -627,6 +626,7 @@ static void manage_fsync_ack(void *arg)
 		END_TL_TIMER(evt_wait_log_persisted_bitmap);
 #endif
 
+		// mlfs_printf("In another thread fsync seqn=%lu\n", mfa_arg->seqn);
 		send_fsync_ack(mfa_arg->libfs_id, mfa_arg->fsync_ack_addr);
 
 	} else {

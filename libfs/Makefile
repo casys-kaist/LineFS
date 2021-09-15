@@ -65,7 +65,7 @@ endif
 
 ### Debug options.
 # DEBUG = -g3 -O0
-#DEBUG = -O0 -gdwarf-2 -g3 -rdynamic
+# DEBUG = -O0 -gdwarf-2 -g3 -rdynamic
 # DEBUG = -g -O2
 #DEBUG = -g -Ofast
 DEBUG = -O3

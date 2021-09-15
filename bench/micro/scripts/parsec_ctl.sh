@@ -98,8 +98,8 @@ printStremaclusterExeTime() {
 	echo "Elapsed time (sec):"
 
 	### get streamcluster result.
-	echo -n "Primary  "
 	if [ $is_local = true ]; then
+		echo -n "Primary  "
 		grep Elapsed $parsec_out_path_host1 | cut -d ':' -f 2
 	fi
 

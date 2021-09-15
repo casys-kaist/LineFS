@@ -316,6 +316,7 @@ int fetch_intf_ip(char* intf, char* host)
  * name is $(hostname). It is for resetting KernFS with scripts, reset_kernfs.sh.
  */
 void send_ready_signal(const char* dir) {
+#ifdef SIGNAL_WITH_NFS
 	FILE *fp;
 	int ret;
 	char hostname[256];
@@ -361,4 +362,5 @@ void send_ready_signal(const char* dir) {
 	}
 	fprintf(fp, "%d", 1);
 	fclose(fp);
+#endif
 }

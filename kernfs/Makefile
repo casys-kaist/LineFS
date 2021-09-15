@@ -34,7 +34,6 @@ PRINT_FLAGS = -DPRINT_COLOR	# enable color scheme.
 # DBG_FLAGS += -DDIGEST_MEMCPY_NO_COPY
 # DBG_FLAGS += -DSIGNAL_HANDLER 	# Enable it to grab signal. Example usages: mutrace, PROFILE_THPOOL, ...
 # DBG_FLAGS += -DCHECK_LOGHDR_LIST
-# DBG_FLAGS += -DCHECK_SANITY
 # DBG_FLAGS += -DCHECK_SANITY_MEMCPY_LIST_BUF # Zeroing loghdr buffer after used.
 
 ### Profile flags.
@@ -50,7 +49,8 @@ PRINT_FLAGS = -DPRINT_COLOR	# enable color scheme.
 # PROFILE_FLAGS += -DPROFILE_JOBQUEUE_LEN
 
 ### Flags for experiments
-# EXP_FLAGS = -DNO_BUSY_WAIT # No busy waiting to measure cpu utilization.
+EXP_FLAGS = -DSIGNAL_WITH_NFS
+# EXP_FLAGS += -DNO_BUSY_WAIT # No busy waiting to measure cpu utilization.
 # EXP_FLAGS += -DNO_NON_TEMPORAL_WRITE # Use memcpy rather than non-temporal write(pmem_memmove_persist) (Host-only)
 
 ### Common flags.

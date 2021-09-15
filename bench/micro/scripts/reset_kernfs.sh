@@ -67,28 +67,31 @@ kill_kernfs() {
 waitKernFSReadySignal() {
     sender=$1
 
-    echo "Waiting for $sender's KernelWorker (LineFS) / SharedFS (Assise) is ready."
+    echo -ne "\t$sender..."
     while [ ! -f "$KERNFS_SIGNAL_DIR/$sender" ] || [ "$(cat "$KERNFS_SIGNAL_DIR/$sender")" = 0 ]; do
         sleep 1
     done
+    echo "done."
 }
 
 waitFormatDoneSignal() {
     sender=$1
 
-    echo "Waiting for $sender's formatting finishes."
+    echo -ne "\t$sender..."
     while [ ! -f "$FORMAT_SIGNAL_DIR/$sender" ] || [ "$(cat "$FORMAT_SIGNAL_DIR/$sender")" = 0 ]; do
         sleep 1
     done
+    echo "done."
 }
 
 waitNICFSReadySignal() {
     sender=$1
 
-    echo "Waiting for $sender's NICFS is ready."
+    echo -ne "\t$sender..."
     while [ ! -f "$KERNFS_SIGNAL_DIR_ARM/$sender" ] || [ "$(cat "$KERNFS_SIGNAL_DIR_ARM/$sender")" = 0 ]; do
         sleep 1
     done
+    echo "done."
 }
 
 format_devices() {
@@ -152,6 +155,19 @@ reset_kernfs() {
     resetSignals
 
     format_devices
+    start_host_kernfs
+
+    if [ -n "$nic" ] && [ "$nic" = "nic" ]; then
+        start_nicfs
+    fi
+}
+
+reset_kernfs_without_formatting() {
+    nic=$1
+
+    kill_kernfs "$nic"
+    resetSignals
+
     start_host_kernfs
 
     if [ -n "$nic" ] && [ "$nic" = "nic" ]; then

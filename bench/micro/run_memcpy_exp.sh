@@ -2,7 +2,7 @@
 {
 	source ../../scripts/global.sh
 
-	TPUT_BENCH_SH="run_iobench_tput.sh"
+	TPUT_BENCH_SH="run_iobench_tput_memcpy.sh"
 	MEMCPY_OUT_DIR="/tmp/out_memcpy"
 	CPU_MEMCPY="cpu_memcpy"
 	DMA_POLLING="dma_polling"
@@ -15,28 +15,59 @@
 		sudo scripts/parsec_ctl.sh -k &>/dev/null
 	}
 
-	runInterferenceExp() {
+	runMemcpyExp() {
 		memcpy_type="$1"
 		out_file="$MEMCPY_OUT_DIR/${memcpy_type}/output.txt"
 		config_dir="$MEMCPY_OUT_DIR/${memcpy_type}"
 		mkdir -p "$config_dir"
 		dumpConfigs "$config_dir"
 
-		echo "******************** RUN INTERFERENCE EXP *************************"
+		echo "******************** RUN MEMCPY EXP *************************"
 		echo "Memcopy type     	: $memcpy_type"
 		echo "Output file       : $out_file"
 		echo "Dump configs into : $config_dir"
 		echo "*******************************************************************"
 
-		sudo scripts/${TPUT_BENCH_SH} -t nic -a | tee "$out_file"
+		if [ "$memcpy_type" = "$NO_COPY" ]; then
+			sudo scripts/${TPUT_BENCH_SH} -n | tee "$out_file"
+		else
+			sudo scripts/${TPUT_BENCH_SH} | tee "$out_file"
+		fi
 	}
 
-	printInterferenceExpResult() {
+	printMemcpyExpResult() {
 		memcpy_type="$1"
 		out_file="$MEMCPY_OUT_DIR/${memcpy_type}/output.txt"
 
 		echo "$memcpy_type"
-		grep -A1 "Primary" "$out_file"
+		echo -n "Streamcluster_exe_time(Replica) "
+		grep "Replica  " "$out_file" | tr -s ' ' | cut -d ' ' -f 2
+		echo -n "Throughput(MB/s) "
+		grep "Throughput" $out_file | cut -d ' ' -f 2 | awk '{SUM += $1} END {print SUM}'
+	}
+
+	setConfigs() {
+		echo "Set configuration."
+		(
+			cd "$PROJ_DIR" || exit
+			sed -i 's/.*export THREAD_NUM_DIGEST_HOST_MEMCPY=.*/export THREAD_NUM_DIGEST_HOST_MEMCPY=1/g' mlfs_config.sh
+		)
+		(
+			cd "$NIC_SRC_DIR" || exit
+			sed -i 's/.*export THREAD_NUM_DIGEST_HOST_MEMCPY=.*/export THREAD_NUM_DIGEST_HOST_MEMCPY=1/g' mlfs_config.sh
+		)
+	}
+
+	resetConfigs() {
+		echo "Restore configuration."
+		(
+			cd "$PROJ_DIR" || exit
+			sed -i 's/.*export THREAD_NUM_DIGEST_HOST_MEMCPY=.*/export THREAD_NUM_DIGEST_HOST_MEMCPY=8/g' mlfs_config.sh
+		)
+		(
+			cd "$NIC_SRC_DIR" || exit
+			sed -i 's/.*export THREAD_NUM_DIGEST_HOST_MEMCPY=.*/export THREAD_NUM_DIGEST_HOST_MEMCPY=8/g' mlfs_config.sh
+		)
 	}
 
 	setIOATMemcpy() {
@@ -45,9 +76,17 @@
 		(
 			cd "$PROJ_DIR" || exit
 			if [ "$val" = 0 ]; then
-				sed -i 's/export IOAT_MEMCPY_OFFLOAD=1/export IOAT_MEMCPY_OFFLOAD=0/g' mlfs_config.sh
+				sed -i 's/.*export IOAT_MEMCPY_OFFLOAD=1.*/export IOAT_MEMCPY_OFFLOAD=0/g' mlfs_config.sh
 			else
-				sed -i 's/export IOAT_MEMCPY_OFFLOAD=0/export IOAT_MEMCPY_OFFLOAD=1/g' mlfs_config.sh
+				sed -i 's/.*export IOAT_MEMCPY_OFFLOAD=0.*/export IOAT_MEMCPY_OFFLOAD=1/g' mlfs_config.sh
+			fi
+		)
+		(
+			cd "$NIC_SRC_DIR" || exit
+			if [ "$val" = 0 ]; then
+				sed -i 's/.*export IOAT_MEMCPY_OFFLOAD=1.*/export IOAT_MEMCPY_OFFLOAD=0/g' mlfs_config.sh
+			else
+				sed -i 's/.*export IOAT_MEMCPY_OFFLOAD=0.*/export IOAT_MEMCPY_OFFLOAD=1/g' mlfs_config.sh
 			fi
 		)
 	}
@@ -57,6 +96,14 @@
 		echo "Set IOAT Interrupt Kernel Module config to $val."
 		(
 			cd "$PROJ_DIR" || exit
+			if [ "$val" = 0 ]; then
+				sed -i 's/.*WITH_SNIC_HOST_FLAGS += -DIOAT_INTERRUPT_KERNEL_MODULE/# WITH_SNIC_HOST_FLAGS += -DIOAT_INTERRUPT_KERNEL_MODULE/g' kernfs/Makefile
+			else
+				sed -i 's/.*WITH_SNIC_HOST_FLAGS += -DIOAT_INTERRUPT_KERNEL_MODULE/WITH_SNIC_HOST_FLAGS += -DIOAT_INTERRUPT_KERNEL_MODULE/g' kernfs/Makefile
+			fi
+		)
+		(
+			cd "$NIC_SRC_DIR" || exit
 			if [ "$val" = 0 ]; then
 				sed -i 's/.*WITH_SNIC_HOST_FLAGS += -DIOAT_INTERRUPT_KERNEL_MODULE/# WITH_SNIC_HOST_FLAGS += -DIOAT_INTERRUPT_KERNEL_MODULE/g' kernfs/Makefile
 			else
@@ -130,47 +177,51 @@
 		mkdir -p $MEMCPY_OUT_DIR
 
 		## To make sure that Async Replication is turned off.
-		setAsyncReplicationOff
-
-		## Run only 1 libfs process case.
-		sed -i '/^NPROCS=/c\NPROCS="1"' scripts/$TPUT_BENCH_SH
+		setAsyncReplicationOff &>/dev/null
+		setConfigs
 
 		## CPU MEMCPY
+		setMemcpyBatching 0
 		buildLineFS
 		setIOATMemcpy 0 # Set run-time config.
-		runInterferenceExp $CPU_MEMCPY
+		runMemcpyExp $CPU_MEMCPY
 		setIOATMemcpy 1 # Restore run-time config.
 
 		## DMA POLLING
+		setMemcpyBatching 0
+		buildLineFS
 		setIOATMemcpy 1 # Set run-time config.
-		runInterferenceExp $DMA_POLLING
-		
+		runMemcpyExp $DMA_POLLING
+
 		## DMA POLLING with BATCHING
 		setMemcpyBatching 1
 		buildLineFS
-		runInterferenceExp $DMA_POLLING_BATCHING
+		setIOATMemcpy 1 # Restore run-time config.
+		runMemcpyExp $DMA_POLLING_BATCHING
 
 		## DMA INTERRUPT with BATCHING
-		setInterruptIOATMemcpy 1
-		buildLineFS
-		runInterferenceExp $DMA_INTERRUPT_BATCHING
-		setInterruptIOATMemcpy 0 # Restore to SPDK driver.
-		
+#		setInterruptIOATMemcpy 1
+#		buildLineFS
+#		runMemcpyExp $DMA_INTERRUPT_BATCHING
+#		setInterruptIOATMemcpy 0 # Restore to SPDK driver.
+
 		## NO COPY
+		sudo scripts/${TPUT_BENCH_SH} -r # Prepare for no-copy exp.
 		setNoCopyConfig 1
 		buildLineFS
-		runInterferenceExp $NO_COPY
+		runMemcpyExp $NO_COPY
 		setNoCopyConfig 0 # Restore
 
-		## Restore modified line.
-		sed -i '/^NPROCS=/c\NPROCS="1 2 4 8"' scripts/$TPUT_BENCH_SH
+		resetConfigs
 
 		## Print results.
-		printInterferenceExpResult $CPU_MEMCPY
-		printInterferenceExpResult $DMA_POLLING
-		printInterferenceExpResult $DMA_POLLING_BATCHING
-		printInterferenceExpResult $DMA_INTERRUPT_BATCHING
-		printInterferenceExpResult $NO_COPY
+		echo "############ Memcpy Experiment Result ############"
+		printMemcpyExpResult $CPU_MEMCPY
+		printMemcpyExpResult $DMA_POLLING
+		printMemcpyExpResult $DMA_POLLING_BATCHING
+#		printMemcpyExpResult $DMA_INTERRUPT_BATCHING
+		printMemcpyExpResult $NO_COPY
+		echo "##################################################"
 	fi
 
 	exit
