@@ -1,4 +1,4 @@
-# LineFS - SmartNIC offloaded distributed file system for persistent memory <!-- omit in toc -->
+# LineFS - SmartNIC offloaded distributed file system optimized for persistent memory <!-- omit in toc -->
 
 - [1. System requirements (Tested environment)](#1-system-requirements-tested-environment)
   - [1.1. Hardware requirements](#11-hardware-requirements)
