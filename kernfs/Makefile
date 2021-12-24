@@ -123,10 +123,21 @@ DEBUG = -O3
 
 ifeq (,$(filter $(SYS), aarch64-linux-gnu))
     BUILD_REL := build
+ifneq (,$(findstring -DHYPERLOOP,$(MLFS_FLAGS)))
+	# with hyperloop
     SUBDIR := io cache concurrency global ds mlfs storage filesystem distributed experimental hyperloop .
 else
+    SUBDIR := io cache concurrency global ds mlfs storage filesystem distributed experimental .
+endif
+
+else
     BUILD_REL := buildarm
+ifneq (,$(findstring -DHYPERLOOP,$(MLFS_FLAGS)))
+	# with hyperloop
     SUBDIR := io cache concurrency global ds mlfs storage filesystem distributed experimental hyperloop nic .
+else
+    SUBDIR := io cache concurrency global ds mlfs storage filesystem distributed experimental nic .
+endif
 endif
 
 SRC_DIR   := $(addprefix , $(SUBDIR))
